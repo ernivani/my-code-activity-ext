@@ -29,6 +29,6 @@ export class Config {
 
     public static getCommitIntervalMs(): number {
         const config = vscode.workspace.getConfiguration('codeTracker');
-        return (config.get<number>('commitInterval') || 1) * 60_000;
+        return (config.get<number>('commitInterval') || 5) * 60_000;
     }
 } 

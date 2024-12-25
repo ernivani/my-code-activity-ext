@@ -28,7 +28,7 @@ export async function ensureCodeTrackingRepo(token: string, username: string): P
         },
         body: JSON.stringify({
             name: 'code-tracking',
-            private: true,
+            private: false,
             description: 'Auto-generated code tracking repository',
             auto_init: true
         })
@@ -59,7 +59,7 @@ This repository is automatically maintained by the VS Code Code Tracking extensi
 - Track time spent on different projects
 - Monitor your coding activity over time
 
-The data is automatically updated every 30 minutes (configurable in VS Code settings).
+The data is automatically updated every 5 minutes (configurable in VS Code settings).
 
 ## Repository Structure
 

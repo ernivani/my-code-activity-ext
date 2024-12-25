@@ -2,6 +2,30 @@
 
 A VS Code extension that automatically tracks your coding activity and commits it to GitHub. This extension helps developers maintain a record of their coding sessions by automatically creating commits at specified intervals.
 
+## Global Statistics
+
+This extension tracks and provides detailed statistics about your coding activity:
+
+### Activity Metrics
+- **Lines of Code**: Tracks added and removed lines across all files
+- **Active Time**: Measures your actual coding time (excluding idle periods > 5 minutes)
+- **File Changes**: Records every file modification with timestamps
+
+### Daily Breakdown
+- Detailed daily activity logs organized by project
+- Hourly activity distribution
+- File type statistics with visualizations
+
+### Project-Level Analytics
+- Per-project statistics including:
+  - Total lines added/removed
+  - Net code changes
+  - Active coding time
+  - Modified files list
+- Visual representations using Mermaid charts for:
+  - Code changes by file type
+  - Activity distribution by hour
+
 ## Features
 
 - 🔄 Automatic tracking of coding activity

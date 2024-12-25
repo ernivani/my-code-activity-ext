@@ -35,7 +35,7 @@
       "properties": {
         "codeTracker.commitInterval": {
           "type": "number",
-          "default": 1,
+          "default": 5,
           "description": "Interval in minutes between activity commits"
         }
       }
