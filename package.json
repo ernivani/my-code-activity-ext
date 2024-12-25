@@ -1,0 +1,64 @@
+{
+  "name": "my-code-activity-ext",
+  "displayName": "My Code Activity Ext",
+  "description": "A VS Code extension that tracks coding activity and commits to GitHub automatically.",
+  "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomaslindeker/my-code-activity-ext.git"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeTracker.signInWithGitHub",
+        "title": "Sign in with GitHub"
+      },
+      {
+        "command": "codeTracker.toggleTracking",
+        "title": "Toggle Code Tracking"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Code Tracker",
+      "properties": {
+        "codeTracker.commitInterval": {
+          "type": "number",
+          "default": 1,
+          "description": "Interval in minutes between activity commits"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "clean": "rm -rf out"
+  },
+  "devDependencies": {
+    "@types/node": "^16.18.34",
+    "@types/node-fetch": "^2.6.12",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "eslint": "^8.26.0",
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
