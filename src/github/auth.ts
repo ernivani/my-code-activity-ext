@@ -1,15 +1,49 @@
 import * as vscode from 'vscode';
 import fetch from 'node-fetch';
 import { Config } from '../utils/config';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let githubToken: string | undefined;
 
-export function getGithubToken(): string | undefined {
+export async function getGithubToken(): Promise<string | undefined> {
+    if (!githubToken) {
+        try {
+            const homeDir = process.env.HOME || process.env.USERPROFILE;
+            const tokenPath = path.join(homeDir!, '.code-tracking-config', 'github-token.json');
+            if (fs.existsSync(tokenPath)) {
+                const tokenFile = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
+                // Validate the token by attempting to fetch user info
+                try {
+                    await fetchUserInfo(tokenFile.token);
+                    githubToken = tokenFile.token;
+                } catch (error) {
+                    console.error('Invalid token in config file:', error);
+                }
+            }
+        } catch (error) {
+            console.error('Error reading github token file:', error);
+        }
+    }
     return githubToken;
 }
 
 export async function tryGetExistingSession(): Promise<vscode.AuthenticationSession | undefined> {
-    // First try to get from stored token
+    // First try to get from config file
+    const configToken = await getGithubToken();
+    if (configToken) {
+        const userInfo = await fetchUserInfo(configToken);
+        if (userInfo.login) {
+            return {
+                accessToken: configToken,
+                account: { label: userInfo.login, id: userInfo.login },
+                id: userInfo.login,
+                scopes: ['repo']
+            };
+        }
+    }
+
+    // If no config token or invalid, try stored token
     const storedToken = await Config.getGithubToken();
     if (storedToken) {
         githubToken = storedToken;

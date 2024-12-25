@@ -93,10 +93,10 @@ export function deactivate() {
 
 async function setupCodeTracking(context: vscode.ExtensionContext) {
     outputChannel.appendLine('Setting up code tracking...');
-    const token = getGithubToken();
+    const token = await getGithubToken();
     if (!token) {
         outputChannel.appendLine('No GitHub token found');
-        vscode.window.showWarningMessage('No GitHub token found. Please sign in first.');
+        vscode.window.showWarningMessage('Please sign in first.');
         return;
     }
 
@@ -130,7 +130,7 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
 
         outputChannel.appendLine(`Setting up auto-commit timer (interval: ${Config.getCommitIntervalMs()}ms)...`);
         const timer = setInterval(async () => {
-            const currentToken = getGithubToken();
+            const currentToken = await getGithubToken();
             if (currentToken && REMOTE_REPO_HTTPS_URL) {
                 outputChannel.appendLine('Creating activity log...');
                 await createActivityLog(Config.TRACKING_REPO_PATH);
