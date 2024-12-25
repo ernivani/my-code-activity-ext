@@ -56,7 +56,7 @@ This extension contributes the following settings:
 ### Setup
 1. Clone the repository
 ```bash
-git clone https://github.com/thomaslindeker/my-code-activity-ext.git
+git clone https://github.com/ernivani/my-code-activity-ext.git
 cd my-code-activity-ext
 ```
 
@@ -68,6 +68,16 @@ npm install
 3. Build the extension
 ```bash
 npm run compile
+```
+
+4. Package the extension
+```bash
+vsce package
+```
+
+5. Install the extension
+```bash
+code --install-extension my-code-activity-ext-0.0.1.vsix
 ```
 
 ### Available Scripts
