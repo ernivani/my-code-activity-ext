@@ -41,6 +41,11 @@ export async function trackChanges(fileName: string) {
 
         const { linesAdded, linesRemoved } = await getGitDiffStats(fileName);
 
+        if (linesAdded === 0 && linesRemoved === 0) {
+            console.log('No changes detected for file:', fileName);
+            return;
+        }
+
         const change: FileChange = {
             timestamp: now,
             fileName,
@@ -335,7 +340,7 @@ async function updateProjectReadme(projectPath: string, projectName: string, sta
     // Générer les graphiques Mermaid
     const mermaidCharts = generateMermaidCharts(stats);
 
-    const content = `# ${projectName} - Activity Summary ����
+    const content = `# ${projectName} - Activity Summary 
 
 ## Overall Statistics
 ${statsTable}
