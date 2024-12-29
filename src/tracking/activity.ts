@@ -33,7 +33,6 @@ interface DailyStats {
 let trackedChanges: FileChange[] = [];
 let lastActivityTime: Date | null = null;
 let activeTimeInMinutes = 0;
-let lastDate: string | null = null;
 
 async function readExistingStats(): Promise<DailyStats | null> {
   try {
@@ -70,18 +69,6 @@ export async function trackChanges(fileName: string) {
     const projectName =
       vscode.workspace.name || path.basename(path.dirname(fileName));
     const now = new Date();
-    const currentDate = now.toISOString().slice(0, 10);
-
-    // Check if day has changed
-    if (lastDate && lastDate !== currentDate) {
-      // Save current changes before resetting
-      await createActivityLog(Config.TRACKING_REPO_PATH);
-      // Reset tracking for new day
-      trackedChanges = [];
-      activeTimeInMinutes = 0;
-      lastActivityTime = null;
-    }
-    lastDate = currentDate;
 
     const { linesAdded, linesRemoved } = await getGitDiffStats(fileName);
 
@@ -290,11 +277,14 @@ function mergeDailyStats(
   oldStats: DailyStats,
   newStats: DailyStats,
 ): DailyStats {
-  // Remove date check to allow merging across midnight boundary
-  // Clone the old stats
+  if (oldStats.date !== newStats.date) {
+    return newStats;
+  }
+
+  // On clone l'ancien stats
   const merged: DailyStats = JSON.parse(JSON.stringify(oldStats));
 
-  // Merge each project
+  // Merge chaque projet
   for (const [projName, newProjectStats] of Object.entries(newStats.projects)) {
     if (!merged.projects[projName]) {
       merged.projects[projName] = newProjectStats;
