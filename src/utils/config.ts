@@ -5,7 +5,7 @@ import * as fs from 'fs';
 export class Config {
     private static readonly CONFIG_DIR = path.join(process.env.HOME || '~', '.code-tracking-config');
     private static readonly TOKEN_FILE = path.join(Config.CONFIG_DIR, 'github-token.json');
-    public static readonly TRACKING_REPO_PATH = path.join(process.env.HOME || '~', '.code-tracking', 'repositories');
+    public static readonly TRACKING_REPO_PATH = path.join(process.env.HOME || '~', '.code-tracking');
 
     public static async saveGithubToken(token: string): Promise<void> {
         try {

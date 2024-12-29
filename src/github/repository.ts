@@ -1,6 +1,8 @@
 import fetch from 'node-fetch';
 import * as cp from 'child_process';
 import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const exec = promisify(cp.exec);
 
@@ -104,23 +106,43 @@ Last Updated: ${new Date().toISOString()}
 
 export async function ensureLocalRepo(localPath: string, remoteUrl: string, token: string) {
     console.log('Setting up local repository...');
+    
+    // First, check if we have a nested repositories situation
+    const parentDir = path.dirname(localPath);
+    const nestedRepoPath = path.join(localPath, 'repositories');
+    
     try {
-        await exec(`git -C ${localPath} rev-parse --is-inside-work-tree`);
-        console.log('Found existing local repository');
-    } catch {
-        console.log('Cloning repository...');
-        await exec(`git clone ${withAuth(remoteUrl, token)} ${localPath}`);
-        console.log('Repository cloned successfully');
-    }
+        // Check if we have a nested repo situation
+        if (fs.existsSync(nestedRepoPath)) {
+            console.log('Found nested repository structure, cleaning up...');
+            await fs.promises.rm(localPath, { recursive: true, force: true });
+        }
+        
+        // Create parent directory if it doesn't exist
+        await fs.promises.mkdir(parentDir, { recursive: true });
+        
+        // Try to check if it's a git repo
+        try {
+            await exec(`git -C ${localPath} rev-parse --is-inside-work-tree`);
+            console.log('Found existing local repository');
+        } catch {
+            console.log('No git repository found, initializing...');
+            // Remove directory if it exists but is not a git repo
+            if (fs.existsSync(localPath)) {
+                await fs.promises.rm(localPath, { recursive: true, force: true });
+            }
+            
+            console.log('Cloning repository...');
+            await exec(`git clone ${withAuth(remoteUrl, token)} ${localPath}`);
+            console.log('Repository cloned successfully');
+        }
 
-    try {
+        // Configure git user
         await exec(`git -C ${localPath} config user.email || git -C ${localPath} config user.email "code-tracker@example.com"`);
         await exec(`git -C ${localPath} config user.name || git -C ${localPath} config user.name "Code Tracker"`);
-    } catch (err) {
-        console.error('Failed to configure git user:', err);
-    }
-
-    const readmeContent = `# Welcome to Code Tracking Repository
+        
+        // Handle README
+        const readmeContent = `# Welcome to Code Tracking Repository
 
 This repository contains all your coding activity tracking data that can be reviewed.
 
@@ -143,21 +165,23 @@ The data is automatically updated every 5 minutes (configurable in VS Code setti
 Last Updated: ${new Date().toISOString()}
 `;
 
-    const fs = require('fs');
-    const path = require('path');
-    const readmePath = path.join(localPath, 'README.md');
-    
-    if (!fs.existsSync(readmePath)) {
-        console.log('Creating README.md...');
-        fs.writeFileSync(readmePath, readmeContent, 'utf-8');
-        try {
-            await exec(`git -C ${localPath} add README.md`);
-            await exec(`git -C ${localPath} commit -m "Initialize README.md"`);
-            await exec(`git -C ${localPath} push origin main`);
-            console.log('README.md created and pushed successfully');
-        } catch (err) {
-            console.error('Failed to commit README:', err);
+        const readmePath = path.join(localPath, 'README.md');
+        
+        if (!fs.existsSync(readmePath)) {
+            console.log('Creating README.md...');
+            fs.writeFileSync(readmePath, readmeContent, 'utf-8');
+            try {
+                await exec(`git -C ${localPath} add README.md`);
+                await exec(`git -C ${localPath} commit -m "Initialize README.md"`);
+                await exec(`git -C ${localPath} push origin main`);
+                console.log('README.md created and pushed successfully');
+            } catch (err) {
+                console.error('Failed to commit README:', err);
+            }
         }
+    } catch (error) {
+        console.error('Failed to set up repository:', error);
+        throw new Error(`Failed to set up repository: ${error}`);
     }
 }
 
