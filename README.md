@@ -92,4 +92,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Note**: Your activity data is stored in a private GitHub repository that only you can access. The extension never shares your coding activity without your explicit permission.
+**Note**: Your activity data is stored in a public GitHub repository that you can make private at any time. The extension never shares your coding activity without your explicit permission.
