@@ -36,7 +36,7 @@ let activeTimeInMinutes = 0;
 
 async function readExistingStats(): Promise<DailyStats | null> {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocaleDateString('en-CA');
     const activityJsonPath = path.join(
       Config.TRACKING_REPO_PATH,
       today,
@@ -157,7 +157,7 @@ function updateActiveTime(now: Date) {
 export async function ensureDailyDirectory(
   trackingRepoPath: string,
 ): Promise<string> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA');
   const dayFolderPath = path.join(trackingRepoPath, today);
 
   try {
@@ -233,7 +233,7 @@ export async function createActivityLog(
 }
 
 function aggregateStats(): DailyStats {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA');
   const stats: DailyStats = {
     date: today,
     projects: {},
@@ -435,7 +435,7 @@ export async function createHourlyLogs(
 
   for (const fileChanges of Object.values(projectStats.files)) {
     for (const change of fileChanges) {
-      // Ensure timestamp is a Date object
+      // Ensure timestamp is a Date object and use local time
       const timestamp =
         change.timestamp instanceof Date
           ? change.timestamp
@@ -446,12 +446,12 @@ export async function createHourlyLogs(
       }
       changesByHour[hour].push({
         ...change,
-        timestamp, // Update the timestamp in the change object
+        timestamp,
       });
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString('en-CA'); // Use local date consistently
 
   for (const [hour, changes] of Object.entries(changesByHour)) {
     const hourMdPath = path.join(projectPath, `${today}-${hour}.md`);

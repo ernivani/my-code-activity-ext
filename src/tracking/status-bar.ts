@@ -5,7 +5,7 @@ import { Config } from '../utils/config';
 import { getTotalActiveTime } from './activity';
 
 function formatTimestamp(date: Date): string {
-    return date.toLocaleString('fr-FR', {
+    return date.toLocaleString(undefined, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -23,7 +23,7 @@ export class StatusBarManager {
 
     constructor() {
         this.activationTime = new Date();
-        this.currentDate = new Date().toISOString().slice(0, 10);
+        this.currentDate = new Date().toLocaleDateString('en-CA');
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.statusBarItem.text = "Code Tracking: Starting...";
         this.statusBarItem.show();
@@ -39,21 +39,18 @@ export class StatusBarManager {
 
     private async loadActivationTime() {
         try {
-            // Create directory if it doesn't exist
             await fs.promises.mkdir(path.dirname(this.activationTimeFile), { recursive: true });
 
-            // Try to read existing activation time
             try {
                 const data = await fs.promises.readFile(this.activationTimeFile, 'utf-8');
                 const { activationTime } = JSON.parse(data);
                 const savedDate = new Date(activationTime);
                 
                 // Only use saved time if it's from today
-                if (savedDate.toISOString().slice(0, 10) === new Date().toISOString().slice(0, 10)) {
+                if (savedDate.toLocaleDateString('en-CA') === new Date().toLocaleDateString('en-CA')) {
                     this.activationTime = savedDate;
                 }
             } catch (error) {
-                // If file doesn't exist or is invalid, save current time
                 await this.saveActivationTime();
             }
         } catch (error) {
@@ -81,7 +78,7 @@ export class StatusBarManager {
 
     public async update(isLoggedIn: boolean = false) {
         const now = new Date();
-        const newDate = now.toISOString().slice(0, 10);
+        const newDate = now.toLocaleDateString('en-CA');
 
         // Check if day has changed
         if (this.currentDate !== newDate) {
