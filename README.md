@@ -9,18 +9,21 @@ Track your coding activity automatically and build a comprehensive history of yo
 ## ✨ Key Features
 
 - **🔄 Automatic Activity Tracking**
+
   - Tracks lines of code added/removed
   - Monitors active coding time
   - Records file modifications
   - Creates automatic commits at customizable intervals
 
 - **📊 Comprehensive Statistics**
+
   - Daily activity breakdowns
   - Project-level analytics
   - File type statistics
   - Time distribution analytics
 
 - **🔐 Secure & Private**
+
   - Secure GitHub authentication
   - Private repository storage
   - Full control over your data
@@ -43,7 +46,7 @@ Access settings through VS Code's settings (Ctrl+,):
 
 \`\`\`json
 {
-  "codeTracker.commitInterval": 5 // Minutes between activity commits (default: 5)
+"codeTracker.commitInterval": 5 // Minutes between activity commits (default: 5)
 }
 \`\`\`
 
@@ -55,6 +58,7 @@ Access settings through VS Code's settings (Ctrl+,):
 ## 📊 Activity Tracking Details
 
 The extension tracks:
+
 - Lines of code added/removed
 - Active coding time (excluding idle periods)
 - File modifications with timestamps
@@ -71,6 +75,7 @@ The extension tracks:
 ## 🤝 Contributing
 
 Contributions are welcome! Feel free to:
+
 - Submit bug reports
 - Propose new features
 - Create pull requests
@@ -87,4 +92,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Note**: Your activity data is stored in a private GitHub repository that only you can access. The extension never shares your coding activity without your explicit permission. 
+**Note**: Your activity data is stored in a private GitHub repository that only you can access. The extension never shares your coding activity without your explicit permission.

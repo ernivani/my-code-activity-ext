@@ -2,7 +2,7 @@
   "name": "my-code-activity-ext",
   "displayName": "My Code Activity Ext",
   "description": "A VS Code extension that tracks coding activity and commits to GitHub automatically.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "ernicani",
   "license": "MIT",
   "repository": {
@@ -48,7 +48,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "clean": "rm -rf out"
+    "clean": "rm -rf out",
+    "pretty": "prettier --write ."
   },
   "devDependencies": {
     "@types/node": "^16.18.34",
@@ -60,6 +61,8 @@
     "typescript": "^4.8.4"
   },
   "dependencies": {
-    "node-fetch": "^2.7.0"
+    "my-code-activity-ext": "file:",
+    "node-fetch": "^2.7.0",
+    "prettier": "^3.4.2"
   }
 }
