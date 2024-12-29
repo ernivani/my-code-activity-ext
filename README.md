@@ -1,119 +1,90 @@
 # My Code Activity Extension
 
-A VS Code extension that automatically tracks your coding activity and commits it to GitHub. This extension helps developers maintain a record of their coding sessions by automatically creating commits at specified intervals.
+[![Version](https://img.shields.io/visual-studio-marketplace/v/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
 
-## Global Statistics
+Track your coding activity automatically and build a comprehensive history of your development journey. This VS Code extension seamlessly records your coding sessions and commits them to a private GitHub repository, helping you maintain a detailed log of your programming activities.
 
-This extension tracks and provides detailed statistics about your coding activity:
+## ✨ Key Features
 
-### Activity Metrics
-- **Lines of Code**: Tracks added and removed lines across all files
-- **Active Time**: Measures your actual coding time (excluding idle periods > 5 minutes)
-- **File Changes**: Records every file modification with timestamps
+- **🔄 Automatic Activity Tracking**
+  - Tracks lines of code added/removed
+  - Monitors active coding time
+  - Records file modifications
+  - Creates automatic commits at customizable intervals
 
-### Daily Breakdown
-- Detailed daily activity logs organized by project
-- Hourly activity distribution
-- File type statistics with visualizations
+- **📊 Comprehensive Statistics**
+  - Daily activity breakdowns
+  - Project-level analytics
+  - File type statistics
+  - Time distribution analytics
 
-### Project-Level Analytics
-- Per-project statistics including:
-  - Total lines added/removed
-  - Net code changes
-  - Active coding time
-  - Modified files list
-- Visual representations using Mermaid charts for:
-  - Code changes by file type
-  - Activity distribution by hour
+- **🔐 Secure & Private**
+  - Secure GitHub authentication
+  - Private repository storage
+  - Full control over your data
 
-## Features
+- **⚡ Easy to Use**
+  - One-click GitHub sign-in
+  - Simple enable/disable toggle
+  - Minimal configuration needed
 
-- 🔄 Automatic tracking of coding activity
-- ⏱️ Configurable commit intervals
-- 🔐 Secure GitHub authentication
-- 🎯 Easy to enable/disable tracking
+## 🚀 Getting Started
 
-## Installation
+1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
+2. Open the Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+3. Run `Sign in with GitHub` to authenticate
+4. Start coding! The extension will automatically track your activity
 
-1. Download the `.vsix` file from the latest release
-2. Open VS Code
-3. Go to the Extensions view (Ctrl+Shift+X)
-4. Click on the "..." menu in the top-right
-5. Select "Install from VSIX..." and choose the downloaded file
+## ⚙️ Configuration
 
-## Usage
+Access settings through VS Code's settings (Ctrl+,):
 
-1. After installation, use the command palette (Ctrl+Shift+P) to:
-   - Sign in with GitHub using `Sign in with GitHub`
-   - Toggle tracking with `Toggle Code Tracking`
+\`\`\`json
+{
+  "codeTracker.commitInterval": 5 // Minutes between activity commits (default: 5)
+}
+\`\`\`
 
-2. Configure the commit interval in VS Code settings:
-   ```json
-   {
-     "codeTracker.commitInterval": 1 // Interval in minutes between commits
-   }
-   ```
+## 📋 Available Commands
 
-## Requirements
+- `Sign in with GitHub`: Connect your GitHub account
+- `Toggle Code Tracking`: Enable/disable activity tracking
 
-- VS Code version 1.75.0 or higher
-- GitHub account for authentication
+## 📊 Activity Tracking Details
+
+The extension tracks:
+- Lines of code added/removed
+- Active coding time (excluding idle periods)
+- File modifications with timestamps
+- Project-specific statistics
+- Language and file type analytics
+
+## 🔧 System Requirements
+
+- VS Code 1.75.0 or higher
 - Git installed on your system
+- GitHub account
+- Internet connection for syncing
 
-## Extension Settings
+## 🤝 Contributing
 
-This extension contributes the following settings:
+Contributions are welcome! Feel free to:
+- Submit bug reports
+- Propose new features
+- Create pull requests
 
-* `codeTracker.commitInterval`: Set the interval (in minutes) between activity commits
-
-## Commands
-
-- `codeTracker.signInWithGitHub`: Authenticate with your GitHub account
-- `codeTracker.toggleTracking`: Enable or disable code activity tracking
-
-## Development
-
-### Prerequisites
-- Node.js
-- npm
-
-### Setup
-1. Clone the repository
-```bash
-git clone https://github.com/ernivani/my-code-activity-ext.git
-cd my-code-activity-ext
-```
-
-2. Install dependencies
-```bash
-npm install
-```
-
-3. Build the extension
-```bash
-npm run compile
-```
-
-4. Package the extension
-```bash
-vsce package
-```
-
-5. Install the extension
-```bash
-code --install-extension my-code-activity-ext-0.0.1.vsix
-```
-
-### Available Scripts
-- `npm run compile`: Compile the TypeScript code
-- `npm run watch`: Watch for changes and recompile
-- `npm run lint`: Run ESLint
-- `npm run clean`: Clean the build output
-
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Contributing
+## 🔗 Links
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
+- [GitHub Repository](https://github.com/ernivani/my-code-activity-ext)
+- [Issue Tracker](https://github.com/ernivani/my-code-activity-ext/issues)
+
+---
+
+**Note**: Your activity data is stored in a private GitHub repository that only you can access. The extension never shares your coding activity without your explicit permission. 
