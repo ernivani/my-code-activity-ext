@@ -18,18 +18,23 @@ function formatTimestamp(date: Date): string {
 export class StatusBarManager {
     private statusBarItem: vscode.StatusBarItem;
     private activationTime: Date;
-    private readonly activationTimeFile: string;
+    private activationTimeFile: string;
+    private currentDate: string;
 
     constructor() {
         this.activationTime = new Date();
+        this.currentDate = new Date().toISOString().slice(0, 10);
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.statusBarItem.text = "Code Tracking: Starting...";
         this.statusBarItem.show();
 
         // Set up the path for storing activation time
-        const today = new Date().toISOString().slice(0, 10);
-        this.activationTimeFile = path.join(Config.TRACKING_REPO_PATH, today, 'activation_time.json');
+        this.activationTimeFile = this.getActivationTimeFilePath();
         this.loadActivationTime();
+    }
+
+    private getActivationTimeFilePath(): string {
+        return path.join(Config.TRACKING_REPO_PATH, this.currentDate, 'activation_time.json');
     }
 
     private async loadActivationTime() {
@@ -75,6 +80,17 @@ export class StatusBarManager {
     }
 
     public async update(isLoggedIn: boolean = false) {
+        const now = new Date();
+        const newDate = now.toISOString().slice(0, 10);
+
+        // Check if day has changed
+        if (this.currentDate !== newDate) {
+            this.currentDate = newDate;
+            this.activationTime = now;
+            this.activationTimeFile = this.getActivationTimeFilePath();
+            await this.saveActivationTime();
+        }
+
         const minutes = await getTotalActiveTime();
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
