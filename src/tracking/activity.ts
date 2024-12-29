@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import { Config } from '../utils/config';
 
 const execAsync = promisify(exec);
 
@@ -32,6 +33,28 @@ interface DailyStats {
 let trackedChanges: FileChange[] = [];
 let lastActivityTime: Date | null = null;
 let activeTimeInMinutes = 0;
+
+async function readExistingStats(): Promise<DailyStats | null> {
+    try {
+        const today = new Date().toISOString().slice(0, 10);
+        const activityJsonPath = path.join(Config.TRACKING_REPO_PATH, today, 'activity.json');
+        const fileData = await fs.promises.readFile(activityJsonPath, 'utf-8');
+        return JSON.parse(fileData);
+    } catch (error) {
+        return null;
+    }
+}
+
+export async function getTotalActiveTime(): Promise<number> {
+    const existingStats = await readExistingStats();
+    let totalTime = 0;
+    
+    if (existingStats) {
+        totalTime = Object.values(existingStats.projects).reduce((sum, p) => sum + p.totalActiveTime, 0);
+    }
+    
+    return totalTime + activeTimeInMinutes; // Include current session time
+}
 
 export async function trackChanges(fileName: string) {
     try {

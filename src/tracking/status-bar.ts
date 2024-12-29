@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Config } from '../utils/config';
+import { getTotalActiveTime } from './activity';
 
 function formatTimestamp(date: Date): string {
     return date.toLocaleString('fr-FR', {
@@ -73,22 +74,21 @@ export class StatusBarManager {
         this.update();
     }
 
-    public update(isLoggedIn: boolean = false) {
-        const now = new Date();
-        const elapsedMs = now.getTime() - this.activationTime.getTime();
-        const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
-        const minutes = Math.floor((elapsedMs % (1000 * 60 * 60)) / (1000 * 60));
+    public async update(isLoggedIn: boolean = false) {
+        const minutes = await getTotalActiveTime();
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
         
         let timeText = '';
         if (hours > 0) {
-            timeText = `${hours}h ${minutes}m`;
+            timeText = `${hours}h ${remainingMinutes}m`;
         } else {
-            timeText = `${minutes}m`;
+            timeText = `${remainingMinutes}m`;
         }
         
         const loginStatus = isLoggedIn ? '$(check)' : '$(x)';
         this.statusBarItem.text = `${loginStatus} Code Tracking: ${timeText}`;
-        this.statusBarItem.tooltip = `Tracking since ${formatTimestamp(this.activationTime)}\n${isLoggedIn ? 'Connected to GitHub' : 'Not connected to GitHub'}`;
+        this.statusBarItem.tooltip = `Total active coding time today\n${isLoggedIn ? 'Connected to GitHub' : 'Not connected to GitHub'}`;
     }
 
     public dispose() {

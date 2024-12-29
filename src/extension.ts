@@ -10,19 +10,12 @@ let REMOTE_REPO_HTTPS_URL: string | undefined;
 let outputChannel: vscode.OutputChannel;
 
 export async function activate(context: vscode.ExtensionContext) {
-    vscode.window.showInformationMessage('Code Tracking Extension is now active! 🚀');
-
     outputChannel = vscode.window.createOutputChannel('Code Tracking');
     outputChannel.show();
     outputChannel.appendLine('Code Tracking Extension is starting...');
     outputChannel.appendLine(`Workspace: ${vscode.workspace.name || 'No workspace'}`);
     outputChannel.appendLine(`Time: ${new Date().toLocaleString()}`);
 
-    if (vscode.workspace.name) {
-        vscode.window.showInformationMessage(`Tracking code activity in: ${vscode.workspace.name}`);
-    } else {
-        vscode.window.showWarningMessage('No workspace detected. Some features may be limited.');
-    }
 
     const statusBar = new StatusBarManager();
     context.subscriptions.push(statusBar);
