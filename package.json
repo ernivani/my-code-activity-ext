@@ -2,9 +2,10 @@
   "name": "my-code-activity-ext",
   "displayName": "My Code Activity Ext",
   "description": "A VS Code extension that tracks coding activity and commits to GitHub automatically.",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "publisher": "ernicani",
   "license": "MIT",
+  "icon": "resources/images/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/ernivani/my-code-activity-ext.git"
