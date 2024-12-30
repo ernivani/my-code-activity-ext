@@ -104,6 +104,39 @@ Last Updated: ${new Date().toISOString()}
     }
 }
 
+async function syncRepository(localPath: string, token: string) {
+    console.log('Syncing repository with remote...');
+    try {
+        // Fetch all changes
+        await exec(`git -C ${localPath} fetch origin`);
+        
+        // Check if we have local changes
+        const { stdout: status } = await exec(`git -C ${localPath} status --porcelain`);
+        
+        if (status.trim()) {
+            // We have local changes, try to stash them
+            await exec(`git -C ${localPath} stash`);
+        }
+        
+        // Reset to match origin/main exactly
+        await exec(`git -C ${localPath} reset --hard origin/main`);
+        
+        if (status.trim()) {
+            // Try to reapply local changes
+            try {
+                await exec(`git -C ${localPath} stash pop`);
+            } catch (e) {
+                console.log('Could not reapply local changes due to conflicts');
+            }
+        }
+        
+        console.log('Repository synced successfully');
+    } catch (error) {
+        console.error('Failed to sync repository:', error);
+        throw error;
+    }
+}
+
 export async function ensureLocalRepo(localPath: string, remoteUrl: string, token: string) {
     console.log('Setting up local repository...');
     
@@ -125,6 +158,17 @@ export async function ensureLocalRepo(localPath: string, remoteUrl: string, toke
         try {
             await exec(`git -C ${localPath} rev-parse --is-inside-work-tree`);
             console.log('Found existing local repository');
+            
+            // Update remote URL in case it changed
+            try {
+                await exec(`git -C ${localPath} remote rm origin`);
+            } catch (e) {
+                // Ignore error if origin doesn't exist
+            }
+            await exec(`git -C ${localPath} remote add origin ${withAuth(remoteUrl, token)}`);
+            
+            // Sync with remote
+            await syncRepository(localPath, token);
         } catch {
             console.log('No git repository found, initializing...');
             // Remove directory if it exists but is not a git repo
@@ -201,17 +245,29 @@ export async function commitAndPush(localPath: string, summary: string, token: s
         try {
             await exec(`git -C ${localPath} remote rm origin`);
         } catch (e) {
+            // Ignore error if origin doesn't exist
         }
         await exec(`git -C ${localPath} remote add origin ${withAuth(remoteUrl, token)}`);
         
+        // First sync with remote to get latest changes
+        await syncRepository(localPath, token);
+        
         console.log('Adding changes...');
         await exec(`git -C ${localPath} add .`);
+        
+        // Check if we actually have changes to commit
+        const { stdout: status } = await exec(`git -C ${localPath} status --porcelain`);
+        if (!status.trim()) {
+            console.log('No changes to commit');
+            return;
+        }
+        
         const now = new Date();
         const commitMsg = `Auto-commit: ${formatTimestamp(now)}\n\n${summary}`;
         await exec(`git -C ${localPath} commit -m "${commitMsg}"`);
         
         console.log('Pushing changes...');
-        await exec(`git -C ${localPath} push -f origin main`);
+        await exec(`git -C ${localPath} push origin main`);
         console.log('Changes pushed successfully');
     } catch (err) {
         console.error('Failed to commit/push code-tracking repo:', err);
