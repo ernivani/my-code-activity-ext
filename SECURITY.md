@@ -12,7 +12,7 @@
 We take the security of VS Code Activity Extension seriously. If you believe you have found a security vulnerability, please follow these steps:
 
 1. **Do Not** disclose the vulnerability publicly
-2. Send a description of the vulnerability to [your-email]
+2. Send a description of the vulnerability to t.lindeker@impin.fr
    - Include steps to reproduce
    - Include the version where you found the vulnerability
    - Include any potential solutions if you have them
