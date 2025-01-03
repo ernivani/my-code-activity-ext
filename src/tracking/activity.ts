@@ -16,6 +16,10 @@ interface FileChange {
   linesAdded: number;
   linesRemoved: number;
   projectName: string;
+  content: {
+    added: string[];
+    removed: string[];
+  };
 }
 
 interface ProjectStats {
@@ -65,40 +69,101 @@ export async function getTotalActiveTime(): Promise<number> {
 
 export async function trackChanges(fileName: string) {
   try {
+    // Add check for file existence
+    if (!fs.existsSync(fileName)) {
+      console.error(`File does not exist: ${fileName}`);
+      return;
+    }
+
+    // Skip README files that haven't been directly edited
+    if (fileName.toLowerCase().includes('readme') || fileName.toLowerCase().endsWith('.md')) {
+      const { linesAdded, linesRemoved } = await getGitDiffStats(fileName);
+      if (linesAdded === 0 && linesRemoved === 0) {
+        console.log("Skipping README/markdown file with no changes:", fileName);
+        return;
+      }
+    }
+
     const fileType = path.extname(fileName) || "unknown";
     const projectName =
       vscode.workspace.name || path.basename(path.dirname(fileName));
     const now = new Date();
 
-    const { linesAdded, linesRemoved } = await getGitDiffStats(fileName);
+    // Add more detailed error handling for git diff
+    try {
+      const { stdout: diffContent } = await execAsync(`git diff ${fileName}`);
+      const contentChanges = parseDiffContent(diffContent);
+      
+      if (contentChanges.added.length === 0 && contentChanges.removed.length === 0) {
+        console.log("No content changes detected for file:", fileName);
+        return;
+      }
 
-    if (linesAdded === 0 && linesRemoved === 0) {
-      console.log("No changes detected for file:", fileName);
-      return;
+      const change: FileChange = {
+        timestamp: now,
+        fileName,
+        fileType,
+        linesAdded: contentChanges.added.length,
+        linesRemoved: contentChanges.removed.length,
+        projectName,
+        content: contentChanges
+      };
+
+      trackedChanges.push(change);
+      updateActiveTime(now);
+      console.log(
+        "Successfully tracked changes for:",
+        fileName,
+        `(+${change.linesAdded}, -${change.linesRemoved})`
+      );
+    } catch (gitError) {
+      console.error("Git diff failed:", gitError);
+      // Fallback to basic diff if git fails
+      const { linesAdded, linesRemoved } = await fallbackDiff(fileName);
+      const change: FileChange = {
+        timestamp: now,
+        fileName,
+        fileType,
+        linesAdded,
+        linesRemoved,
+        projectName,
+        content: { added: [], removed: [] }
+      };
+      trackedChanges.push(change);
+      updateActiveTime(now);
+      console.log(
+        "Tracked changes using fallback method:",
+        fileName,
+        `(+${linesAdded}, -${linesRemoved})`
+      );
     }
-
-    const change: FileChange = {
-      timestamp: now,
-      fileName,
-      fileType,
-      linesAdded,
-      linesRemoved,
-      projectName,
-    };
-
-    trackedChanges.push(change);
-    updateActiveTime(now);
-    console.log(
-      "File changed:",
-      fileName,
-      `(+${linesAdded}, -${linesRemoved})`,
-    );
   } catch (error) {
+    console.error("Detailed error tracking changes:", {
+      error,
+      fileName,
+      workspace: vscode.workspace.name,
+      cwd: process.cwd()
+    });
     vscode.window.showErrorMessage(
-      `Failed to track changes for file: ${fileName}`,
+      `Failed to track changes for file: ${fileName}. Error: ${error instanceof Error ? error.message : String(error)}`
     );
-    console.error("Error tracking changes:", error);
   }
+}
+
+function parseDiffContent(diffContent: string): { added: string[]; removed: string[] } {
+  const added: string[] = [];
+  const removed: string[] = [];
+
+  const lines = diffContent.split('\n');
+  for (const line of lines) {
+    if (line.startsWith('+') && !line.startsWith('+++')) {
+      added.push(line.substring(1).trim());
+    } else if (line.startsWith('-') && !line.startsWith('---')) {
+      removed.push(line.substring(1).trim());
+    }
+  }
+
+  return { added, removed };
 }
 
 async function getGitDiffStats(
@@ -207,12 +272,15 @@ export async function createActivityLog(
     for (const [projectName, projectStats] of Object.entries(
       mergedStats.projects,
     )) {
-      const projectPath = path.join(
-        dayFolderPath,
-        sanitizeFileName(projectName),
-      );
-      await fs.promises.mkdir(projectPath, { recursive: true });
-      await updateProjectReadme(projectPath, projectName, projectStats);
+      // Only update README if there are new changes in this session
+      if (Object.keys(newStats.projects).includes(projectName)) {
+        const projectPath = path.join(
+          dayFolderPath,
+          sanitizeFileName(projectName),
+        );
+        await fs.promises.mkdir(projectPath, { recursive: true });
+        await updateProjectReadme(projectPath, projectName, projectStats);
+      }
     }
 
     await fs.promises.writeFile(
@@ -435,7 +503,6 @@ export async function createHourlyLogs(
 
   for (const fileChanges of Object.values(projectStats.files)) {
     for (const change of fileChanges) {
-      // Ensure timestamp is a Date object and use local time
       const timestamp =
         change.timestamp instanceof Date
           ? change.timestamp
@@ -451,7 +518,7 @@ export async function createHourlyLogs(
     }
   }
 
-  const today = new Date().toLocaleDateString('en-CA'); // Use local date consistently
+  const today = new Date().toLocaleDateString('en-CA');
 
   for (const [hour, changes] of Object.entries(changesByHour)) {
     const hourMdPath = path.join(projectPath, `${today}-${hour}.md`);
@@ -471,9 +538,20 @@ ${changes
       change.timestamp instanceof Date
         ? change.timestamp
         : new Date(change.timestamp);
-    return `- [${timestamp.toLocaleTimeString()}] ${path.basename(change.fileName)} (+${change.linesAdded}, -${change.linesRemoved})`;
+    return `### ${path.basename(change.fileName)} (${timestamp.toLocaleTimeString()})
+    
+#### Added Lines:
+\`\`\`${change.fileType.replace('.', '')}
+${change.content?.added.join('\n') || 'No lines added'}
+\`\`\`
+
+#### Removed Lines:
+\`\`\`${change.fileType.replace('.', '')}
+${change.content?.removed.join('\n') || 'No lines removed'}
+\`\`\`
+`;
   })
-  .join("\n")}
+  .join('\n\n')}
 `;
 
     await fs.promises.writeFile(hourMdPath, hourContent, "utf-8");

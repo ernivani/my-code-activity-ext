@@ -228,7 +228,9 @@ export async function commitAndPush(localPath: string, message: string, token: s
             }
         }
 
-        await exec(`git -C ${localPath} commit -m "${commitMessage}" || true`);  // || true to handle "nothing to commit" case
+        // Escape quotes and properly wrap the commit message
+        const escapedMessage = commitMessage.replace(/"/g, '\\"');
+        await exec(`git -C ${localPath} commit -m "${escapedMessage}" || true`);  // || true to handle "nothing to commit" case
         await exec(`git -C ${localPath} push -u origin ${branchName}`);
     } catch (error) {
         console.error('Failed to commit and push changes:', error);

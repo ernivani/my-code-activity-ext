@@ -46,6 +46,35 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(signInCommand);
 
+  // Add force push command
+  const forcePushCommand = vscode.commands.registerCommand(
+    "codeTracker.forcePush",
+    async () => {
+      outputChannel.appendLine("Force pushing code tracking data...");
+      const currentToken = await getGithubToken();
+      if (currentToken && REMOTE_REPO_HTTPS_URL) {
+        try {
+          await createActivityLog(Config.TRACKING_REPO_PATH);
+          const summary = await createSummary();
+          await commitAndPush(
+            Config.TRACKING_REPO_PATH,
+            summary,
+            currentToken,
+            REMOTE_REPO_HTTPS_URL as string
+          );
+          vscode.window.showInformationMessage("Successfully pushed code tracking data");
+          outputChannel.appendLine("Force push completed successfully");
+        } catch (error) {
+          outputChannel.appendLine(`Force push failed: ${error}`);
+          vscode.window.showErrorMessage(`Failed to push code tracking data: ${error}`);
+        }
+      } else {
+        vscode.window.showErrorMessage("Please sign in first to push code tracking data");
+      }
+    }
+  );
+  context.subscriptions.push(forcePushCommand);
+
   // First check for stored token
   outputChannel.appendLine("Checking for stored GitHub token...");
   const storedToken = await Config.getGithubToken();
@@ -107,9 +136,27 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 }
 
-export function deactivate() {
+export async function deactivate() {
   outputChannel.appendLine("Code Tracking Extension is shutting down...");
   outputChannel.appendLine(`Time: ${new Date().toLocaleString()}`);
+  
+  // Push any remaining changes before deactivating
+  const token = await Config.getGithubToken();
+  if (token && REMOTE_REPO_HTTPS_URL) {
+    outputChannel.appendLine("Pushing final changes before shutdown...");
+    createActivityLog(Config.TRACKING_REPO_PATH)
+      .then(() => createSummary())
+      .then(summary => 
+        commitAndPush(
+          Config.TRACKING_REPO_PATH,
+          summary,
+          token,
+          REMOTE_REPO_HTTPS_URL as string
+        )
+      )
+      .then(() => outputChannel.appendLine("Final push completed successfully"))
+      .catch(error => outputChannel.appendLine(`Final push failed: ${error}`));
+  }
 }
 
 async function setupCodeTracking(context: vscode.ExtensionContext) {
@@ -171,7 +218,7 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
           Config.TRACKING_REPO_PATH,
           summary,
           currentToken,
-          REMOTE_REPO_HTTPS_URL,
+          REMOTE_REPO_HTTPS_URL as string
         );
       }
     }, Config.getCommitIntervalMs());

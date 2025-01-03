@@ -2,7 +2,7 @@
   "name": "my-code-activity-ext",
   "displayName": "My Code Activity Ext",
   "description": "A VS Code extension that tracks coding activity and commits to GitHub automatically.",
-  "version": "0.0.8",
+  "version": "0.1.0",
   "publisher": "ernicani",
   "license": "MIT",
   "icon": "resources/images/icon.png",
@@ -29,6 +29,10 @@
       {
         "command": "codeTracker.toggleTracking",
         "title": "Toggle Code Tracking"
+      },
+      {
+        "command": "codeTracker.forcePush",
+        "title": "Force Push Code Tracking Data"
       }
     ],
     "configuration": {
