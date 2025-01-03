@@ -3,10 +3,18 @@ import * as cp from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Config } from '../utils/config';
 
 const exec = promisify(cp.exec);
 
 export async function ensureCodeTrackingRepo(token: string, username: string): Promise<string> {
+    console.log('Checking for custom remote URL...');
+    const customUrl = Config.getCustomRemoteUrl();
+    if (customUrl) {
+        console.log('Using custom remote URL:', customUrl);
+        return customUrl;
+    }
+
     console.log('Checking if code-tracking repository exists...');
     const existing = await fetch(`https://api.github.com/repos/${username}/code-tracking`, {
         headers: {
@@ -105,42 +113,38 @@ Last Updated: ${new Date().toISOString()}
 }
 
 export async function ensureLocalRepo(localPath: string, remoteUrl: string, token: string) {
-    console.log('Setting up local repository...');
-    
-    // First, check if we have a nested repositories situation
-    const parentDir = path.dirname(localPath);
-    const nestedRepoPath = path.join(localPath, 'repositories');
-    
     try {
-        // Check if we have a nested repo situation
-        if (fs.existsSync(nestedRepoPath)) {
-            console.log('Found nested repository structure, cleaning up...');
-            await fs.promises.rm(localPath, { recursive: true, force: true });
-        }
-        
-        // Create parent directory if it doesn't exist
-        await fs.promises.mkdir(parentDir, { recursive: true });
-        
-        // Try to check if it's a git repo
-        try {
-            await exec(`git -C ${localPath} rev-parse --is-inside-work-tree`);
-            console.log('Found existing local repository');
-        } catch {
-            console.log('No git repository found, initializing...');
-            // Remove directory if it exists but is not a git repo
-            if (fs.existsSync(localPath)) {
-                await fs.promises.rm(localPath, { recursive: true, force: true });
-            }
-            
-            console.log('Cloning repository...');
-            await exec(`git clone ${withAuth(remoteUrl, token)} ${localPath}`);
-            console.log('Repository cloned successfully');
+        if (!fs.existsSync(localPath)) {
+            console.log('Creating local repository...');
+            await fs.promises.mkdir(localPath, { recursive: true });
+            await exec(`git init ${localPath}`);
+            await exec(`git -C ${localPath} remote add origin ${remoteUrl}`);
         }
 
         // Configure git user
         await exec(`git -C ${localPath} config user.email || git -C ${localPath} config user.email "code-tracker@example.com"`);
         await exec(`git -C ${localPath} config user.name || git -C ${localPath} config user.name "Code Tracker"`);
+
+        // Get current branch
+        const branchName = Config.getBranchName();
         
+        try {
+            // Check if branch exists locally
+            await exec(`git -C ${localPath} rev-parse --verify ${branchName}`);
+        } catch {
+            // Branch doesn't exist, create it
+            console.log(`Creating new branch: ${branchName}`);
+            await exec(`git -C ${localPath} checkout -b ${branchName}`);
+        }
+
+        try {
+            // Try to pull from remote branch if it exists
+            await exec(`git -C ${localPath} pull origin ${branchName} --allow-unrelated-histories`);
+        } catch (error) {
+            console.log(`Remote branch ${branchName} not found or other error:`, error);
+            // Continue anyway as the branch might not exist remotely yet
+        }
+
         // Handle README
         const readmeContent = `# Welcome to Code Tracking Repository
 
@@ -196,26 +200,15 @@ function formatTimestamp(date: Date): string {
     });
 }
 
-export async function commitAndPush(localPath: string, summary: string, token: string, remoteUrl: string) {
+export async function commitAndPush(localPath: string, message: string, token: string, remoteUrl: string) {
     try {
-        try {
-            await exec(`git -C ${localPath} remote rm origin`);
-        } catch (e) {
-        }
-        await exec(`git -C ${localPath} remote add origin ${withAuth(remoteUrl, token)}`);
-        
-        console.log('Adding changes...');
+        const branchName = Config.getBranchName();
         await exec(`git -C ${localPath} add .`);
-        const now = new Date();
-        const commitMsg = `Auto-commit: ${formatTimestamp(now)}\n\n${summary}`;
-        await exec(`git -C ${localPath} commit -m "${commitMsg}"`);
-        
-        console.log('Pushing changes...');
-        await exec(`git -C ${localPath} push -f origin main`);
-        console.log('Changes pushed successfully');
-    } catch (err) {
-        console.error('Failed to commit/push code-tracking repo:', err);
-        throw err;
+        await exec(`git -C ${localPath} commit -m "${message}" || true`);  // || true to handle "nothing to commit" case
+        await exec(`git -C ${localPath} push -u origin ${branchName}`);
+    } catch (error) {
+        console.error('Failed to commit and push changes:', error);
+        throw error;
     }
 }
 

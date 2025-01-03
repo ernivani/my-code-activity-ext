@@ -32,4 +32,14 @@ export class Config {
         const config = vscode.workspace.getConfiguration('codeTracker');
         return (config.get<number>('commitInterval') || 5) * 60_000;
     }
+
+    public static getCustomRemoteUrl(): string | undefined {
+        const config = vscode.workspace.getConfiguration('codeTracker');
+        return config.get<string>('customRemoteUrl');
+    }
+
+    public static getBranchName(): string {
+        const config = vscode.workspace.getConfiguration('codeTracker');
+        return config.get<string>('branchName') || 'main';
+    }
 } 

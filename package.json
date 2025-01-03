@@ -39,6 +39,15 @@
           "type": "number",
           "default": 5,
           "description": "Interval in minutes between activity commits"
+        },
+        "codeTracker.customRemoteUrl": {
+          "type": "string",
+          "description": "Custom Git remote URL to use instead of the default GitHub repository"
+        },
+        "codeTracker.branchName": {
+          "type": "string",
+          "default": "main",
+          "description": "Git branch name to use for tracking data"
         }
       }
     }
