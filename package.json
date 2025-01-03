@@ -2,7 +2,7 @@
   "name": "my-code-activity-ext",
   "displayName": "My Code Activity Ext",
   "description": "A VS Code extension that tracks coding activity and commits to GitHub automatically.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "ernicani",
   "license": "MIT",
   "icon": "resources/images/icon.png",
@@ -48,6 +48,21 @@
           "type": "string",
           "default": "main",
           "description": "Git branch name to use for tracking data"
+        },
+        "codeTracker.enableAiCommits": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable AI-generated commit messages using Ollama"
+        },
+        "codeTracker.ollamaUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "URL of the Ollama server"
+        },
+        "codeTracker.ollamaModel": {
+          "type": "string",
+          "default": "codellama",
+          "description": "Ollama model to use for generating commit messages"
         }
       }
     }
@@ -57,17 +72,21 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
+    "test": "jest",
     "lint": "eslint src --ext ts",
     "clean": "rm -rf out",
     "pretty": "prettier --write ."
   },
   "devDependencies": {
+    "@types/jest": "^29.5.11",
     "@types/node": "^16.18.34",
     "@types/node-fetch": "^2.6.12",
     "@types/vscode": "^1.75.0",
     "@typescript-eslint/eslint-plugin": "^5.42.0",
     "@typescript-eslint/parser": "^5.42.0",
     "eslint": "^8.26.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
     "typescript": "^4.8.4"
   },
   "dependencies": {

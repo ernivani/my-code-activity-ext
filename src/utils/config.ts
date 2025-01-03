@@ -42,4 +42,19 @@ export class Config {
         const config = vscode.workspace.getConfiguration('codeTracker');
         return config.get<string>('branchName') || 'main';
     }
+
+    public static getOllamaUrl(): string {
+        const config = vscode.workspace.getConfiguration('codeTracker');
+        return config.get<string>('ollamaUrl') || 'http://localhost:11434';
+    }
+
+    public static getOllamaModel(): string {
+        const config = vscode.workspace.getConfiguration('codeTracker');
+        return config.get<string>('ollamaModel') || 'codellama';
+    }
+
+    public static isAiCommitEnabled(): boolean {
+        const config = vscode.workspace.getConfiguration('codeTracker');
+        return config.get<boolean>('enableAiCommits') || false;
+    }
 } 

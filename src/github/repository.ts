@@ -4,6 +4,8 @@ import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Config } from '../utils/config';
+import { OllamaService } from '../ai/ollama';
+import { GitDiffService } from '../git/diff-service';
 
 const exec = promisify(cp.exec);
 
@@ -204,7 +206,29 @@ export async function commitAndPush(localPath: string, message: string, token: s
     try {
         const branchName = Config.getBranchName();
         await exec(`git -C ${localPath} add .`);
-        await exec(`git -C ${localPath} commit -m "${message}" || true`);  // || true to handle "nothing to commit" case
+
+        let commitMessage = message;
+        if (Config.isAiCommitEnabled()) {
+            try {
+                const diffService = GitDiffService.getInstance();
+                const ollamaService = OllamaService.getInstance();
+
+                const [diff, files, functions] = await Promise.all([
+                    diffService.getGitDiff(localPath),
+                    diffService.getModifiedFiles(localPath),
+                    diffService.getModifiedFunctions(localPath)
+                ]);
+
+                if (diff && files.length > 0) {
+                    commitMessage = await ollamaService.generateCommitMessage(diff, files);
+                }
+            } catch (error) {
+                console.error('Error generating AI commit message:', error);
+                // Fallback to original message if AI generation fails
+            }
+        }
+
+        await exec(`git -C ${localPath} commit -m "${commitMessage}" || true`);  // || true to handle "nothing to commit" case
         await exec(`git -C ${localPath} push -u origin ${branchName}`);
     } catch (error) {
         console.error('Failed to commit and push changes:', error);
