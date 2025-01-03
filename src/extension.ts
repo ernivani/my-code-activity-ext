@@ -25,12 +25,6 @@ let outputChannel: vscode.OutputChannel;
 
 export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Code Tracking");
-  outputChannel.show();
-  outputChannel.appendLine("Code Tracking Extension is starting...");
-  outputChannel.appendLine(
-    `Workspace: ${vscode.workspace.name || "No workspace"}`,
-  );
-  outputChannel.appendLine(`Time: ${new Date().toLocaleString()}`);
 
   const statusBar = new StatusBarManager();
   context.subscriptions.push(statusBar);
