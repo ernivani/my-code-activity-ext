@@ -128,16 +128,27 @@ The extension automatically commits these summaries to your GitHub repository, p
 
 Access settings through VS Code's settings (Ctrl+,):
 
-\`\`\`json
+```json
 {
-"codeTracker.commitInterval": 5,          // Minutes between activity commits (default: 5)
-"codeTracker.customRemoteUrl": "",        // Custom Git remote URL (optional)
-"codeTracker.branchName": "main",         // Git branch name for tracking data
-"codeTracker.enableAiCommits": false,     // Enable AI-generated commit messages
-"codeTracker.ollamaUrl": "localhost:11434", // Ollama server URL
-"codeTracker.ollamaModel": "codellama"    // Ollama model for commit messages
+    // Minutes between activity commits
+    "codeTracker.commitInterval": 5,
+    
+    // Custom Git remote URL (optional)
+    "codeTracker.customRemoteUrl": "",
+    
+    // Git branch name for tracking data
+    "codeTracker.branchName": "main",
+    
+    // Enable AI-generated commit messages
+    "codeTracker.enableAiCommits": false,
+    
+    // Ollama server URL
+    "codeTracker.ollamaUrl": "localhost:11434",
+    
+    // Ollama model for commit messages
+    "codeTracker.ollamaModel": "codellama"
 }
-\`\`\`
+```
 
 ### AI Commit Messages
 
