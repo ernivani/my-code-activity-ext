@@ -20,6 +20,14 @@ interface FileChange {
     added: string[];
     removed: string[];
   };
+  duration?: number;  // Time spent on this change in seconds
+  changeType?: 'create' | 'modify' | 'delete';
+  language?: string;  // Programming language based on file extension
+  functionChanges?: {
+    added: string[];
+    modified: string[];
+    removed: string[];
+  };
 }
 
 interface ProjectStats {
@@ -27,11 +35,20 @@ interface ProjectStats {
   totalLinesRemoved: number;
   totalActiveTime: number;
   files: { [key: string]: FileChange[] };
+  languageStats: { [language: string]: number };  // Lines of code per language
+  changeFrequency: { [hour: number]: number };    // Changes per hour
+  topFiles: string[];                             // Most frequently modified files
+  averageChangeSize: number;                      // Average lines changed per modification
 }
 
 interface DailyStats {
   date: string;
   projects: { [key: string]: ProjectStats };
+  totalActiveTime: number;
+  totalProjects: number;
+  totalFiles: number;
+  mostActiveHours: number[];
+  mostUsedLanguages: string[];
 }
 
 let trackedChanges: FileChange[] = [];
@@ -85,8 +102,7 @@ export async function trackChanges(fileName: string) {
     }
 
     const fileType = path.extname(fileName) || "unknown";
-    const projectName =
-      vscode.workspace.name || path.basename(path.dirname(fileName));
+    const projectName = vscode.workspace.name || path.basename(path.dirname(fileName));
     const now = new Date();
 
     // Add more detailed error handling for git diff
@@ -94,6 +110,7 @@ export async function trackChanges(fileName: string) {
       const { stdout: diffContent } = await execAsync(`git diff ${fileName}`);
       const contentChanges = parseDiffContent(diffContent);
       
+      // Skip if no actual changes
       if (contentChanges.added.length === 0 && contentChanges.removed.length === 0) {
         console.log("No content changes detected for file:", fileName);
         return;
@@ -109,33 +126,40 @@ export async function trackChanges(fileName: string) {
         content: contentChanges
       };
 
-      trackedChanges.push(change);
-      updateActiveTime(now);
-      console.log(
-        "Successfully tracked changes for:",
-        fileName,
-        `(+${change.linesAdded}, -${change.linesRemoved})`
-      );
+      // Only add if there are actual changes
+      if (change.linesAdded > 0 || change.linesRemoved > 0) {
+        trackedChanges.push(change);
+        updateActiveTime(now);
+        console.log(
+          "Successfully tracked changes for:",
+          fileName,
+          `(+${change.linesAdded}, -${change.linesRemoved})`
+        );
+      }
     } catch (gitError) {
       console.error("Git diff failed:", gitError);
       // Fallback to basic diff if git fails
       const { linesAdded, linesRemoved } = await fallbackDiff(fileName);
-      const change: FileChange = {
-        timestamp: now,
-        fileName,
-        fileType,
-        linesAdded,
-        linesRemoved,
-        projectName,
-        content: { added: [], removed: [] }
-      };
-      trackedChanges.push(change);
-      updateActiveTime(now);
-      console.log(
-        "Tracked changes using fallback method:",
-        fileName,
-        `(+${linesAdded}, -${linesRemoved})`
-      );
+      
+      // Only create entry if there are actual changes
+      if (linesAdded > 0 || linesRemoved > 0) {
+        const change: FileChange = {
+          timestamp: now,
+          fileName,
+          fileType,
+          linesAdded,
+          linesRemoved,
+          projectName,
+          content: { added: [], removed: [] }
+        };
+        trackedChanges.push(change);
+        updateActiveTime(now);
+        console.log(
+          "Tracked changes using fallback method:",
+          fileName,
+          `(+${linesAdded}, -${linesRemoved})`
+        );
+      }
     }
   } catch (error) {
     console.error("Detailed error tracking changes:", {
@@ -259,7 +283,7 @@ export async function createActivityLog(
       // Pas de fichier existant, ce n'est pas forcément une erreur
     }
 
-    const newStats = aggregateStats();
+    const newStats = await aggregateStats();
     const mergedStats = oldStats
       ? mergeDailyStats(oldStats, newStats)
       : newStats;
@@ -300,45 +324,170 @@ export async function createActivityLog(
   }
 }
 
-function aggregateStats(): DailyStats {
+async function aggregateStats(): Promise<DailyStats> {
   const today = new Date().toLocaleDateString('en-CA');
   const stats: DailyStats = {
     date: today,
     projects: {},
+    totalActiveTime: activeTimeInMinutes,
+    totalProjects: 0,
+    totalFiles: 0,
+    mostActiveHours: [],
+    mostUsedLanguages: []
   };
 
+  // First, consolidate changes by file and timestamp window
+  const consolidatedChanges = new Map<string, FileChange[]>();
+  const hourlyActivity = new Map<number, number>();
+  const languageUsage = new Map<string, number>();
+  
   for (const change of trackedChanges) {
-    if (!stats.projects[change.projectName]) {
-      stats.projects[change.projectName] = {
-        totalLinesAdded: 0,
-        totalLinesRemoved: 0,
-        totalActiveTime: 0,
-        files: {},
+    if (change.linesAdded === 0 && change.linesRemoved === 0) {
+      continue;
+    }
+
+    // Track hourly activity
+    const hour = new Date(change.timestamp).getHours();
+    hourlyActivity.set(hour, (hourlyActivity.get(hour) || 0) + 1);
+
+    // Track language usage
+    const language = change.fileType.replace('.', '') || 'unknown';
+    languageUsage.set(language, (languageUsage.get(language) || 0) + change.linesAdded + change.linesRemoved);
+
+    const key = change.fileName;
+    if (!consolidatedChanges.has(key)) {
+      consolidatedChanges.set(key, []);
+    }
+    
+    const fileChanges = consolidatedChanges.get(key)!;
+    const lastChange = fileChanges[fileChanges.length - 1];
+    
+    if (lastChange && 
+        Math.abs(new Date(change.timestamp).getTime() - new Date(lastChange.timestamp).getTime()) <= 5000) {
+      lastChange.linesAdded += change.linesAdded;
+      lastChange.linesRemoved += change.linesRemoved;
+      if (change.content && lastChange.content) {
+        lastChange.content.added.push(...change.content.added);
+        lastChange.content.removed.push(...change.content.removed);
+      }
+      // Update duration if available
+      if (lastChange.duration && change.duration) {
+        lastChange.duration += change.duration;
+      }
+    } else {
+      // Enhance the change object with additional data
+      const enhancedChange = {
+        ...change,
+        language: change.fileType.replace('.', '') || 'unknown',
+        changeType: getChangeType(change),
+        functionChanges: await extractFunctionChanges(change)
       };
+      fileChanges.push(enhancedChange);
     }
-
-    const project = stats.projects[change.projectName];
-    project.totalLinesAdded += change.linesAdded;
-    project.totalLinesRemoved += change.linesRemoved;
-
-    if (!project.files[change.fileName]) {
-      project.files[change.fileName] = [];
-    }
-    project.files[change.fileName].push(change);
   }
 
-  const projectNames = Object.keys(stats.projects);
-  if (projectNames.length > 0) {
-    // Répartition simple du temps actif pour chaque projet
-    const timePerProject = Math.floor(
-      activeTimeInMinutes / projectNames.length,
-    );
-    for (const name of projectNames) {
+  // Build stats with enhanced analytics
+  for (const [_, changes] of consolidatedChanges) {
+    for (const change of changes) {
+      if (!stats.projects[change.projectName]) {
+        stats.projects[change.projectName] = {
+          totalLinesAdded: 0,
+          totalLinesRemoved: 0,
+          totalActiveTime: 0,
+          files: {},
+          languageStats: {},
+          changeFrequency: {},
+          topFiles: [],
+          averageChangeSize: 0
+        };
+      }
+
+      const project = stats.projects[change.projectName];
+      project.totalLinesAdded += change.linesAdded;
+      project.totalLinesRemoved += change.linesRemoved;
+
+      // Update language stats
+      const language = change.language || 'unknown';
+      project.languageStats[language] = (project.languageStats[language] || 0) + change.linesAdded + change.linesRemoved;
+
+      // Update change frequency
+      const hour = new Date(change.timestamp).getHours();
+      project.changeFrequency[hour] = (project.changeFrequency[hour] || 0) + 1;
+
+      if (!project.files[change.fileName]) {
+        project.files[change.fileName] = [];
+      }
+      project.files[change.fileName].push(change);
+    }
+  }
+
+  // Calculate summary statistics
+  stats.totalProjects = Object.keys(stats.projects).length;
+  stats.totalFiles = Array.from(consolidatedChanges.keys()).length;
+  stats.mostActiveHours = getMostActiveHours(hourlyActivity);
+  stats.mostUsedLanguages = getMostUsedLanguages(languageUsage);
+
+  // Distribute active time
+  if (stats.totalProjects > 0) {
+    const timePerProject = Math.floor(activeTimeInMinutes / stats.totalProjects);
+    for (const name of Object.keys(stats.projects)) {
       stats.projects[name].totalActiveTime = timePerProject;
+      
+      // Calculate average change size
+      const project = stats.projects[name];
+      const totalChanges = Object.values(project.files).flat().length;
+      project.averageChangeSize = totalChanges > 0 
+        ? (project.totalLinesAdded + project.totalLinesRemoved) / totalChanges 
+        : 0;
+      
+      // Update top files
+      project.topFiles = Object.entries(project.files)
+        .sort((a, b) => b[1].length - a[1].length)
+        .slice(0, 5)
+        .map(([file]) => file);
     }
   }
 
   return stats;
+}
+
+function getChangeType(change: FileChange): 'create' | 'modify' | 'delete' {
+  if (change.linesAdded > 0 && change.linesRemoved === 0) return 'create';
+  if (change.linesAdded === 0 && change.linesRemoved > 0) return 'delete';
+  return 'modify';
+}
+
+async function extractFunctionChanges(change: FileChange): Promise<{ added: string[], modified: string[], removed: string[] }> {
+  try {
+    const { stdout } = await execAsync(`git diff --function-context ${change.fileName}`);
+    const functionMatches = stdout.match(/@@ .* @@\s+(?:function|class|def|const|let|var)\s+(\w+)/g) || [];
+    const functions = functionMatches.map(match => match.split(/\s+/).pop() || '').filter(Boolean);
+    
+    return {
+      added: functions.filter(f => change.content.added.some(line => line.includes(f))),
+      modified: functions.filter(f => 
+        change.content.added.some(line => line.includes(f)) && 
+        change.content.removed.some(line => line.includes(f))
+      ),
+      removed: functions.filter(f => change.content.removed.some(line => line.includes(f)))
+    };
+  } catch {
+    return { added: [], modified: [], removed: [] };
+  }
+}
+
+function getMostActiveHours(hourlyActivity: Map<number, number>): number[] {
+  return Array.from(hourlyActivity.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([hour]) => hour);
+}
+
+function getMostUsedLanguages(languageUsage: Map<string, number>): string[] {
+  return Array.from(languageUsage.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([language]) => language);
 }
 
 function mergeDailyStats(
@@ -567,7 +716,7 @@ export async function createSummary(): Promise<string> {
     return "No changes in the last period.";
   }
 
-  const stats = aggregateStats();
+  const stats = await aggregateStats();
   const totalAdded = Object.values(stats.projects).reduce(
     (sum, p) => sum + p.totalLinesAdded,
     0,

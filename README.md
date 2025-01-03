@@ -8,26 +8,29 @@ Track your coding activity automatically and build a comprehensive history of yo
 
 ## ✨ Key Features
 
-- **🔄 Automatic Activity Tracking**
+- **🔄 Enhanced Activity Tracking**
 
-  - Tracks lines of code added/removed
-  - Monitors active coding time
-  - Records file modifications
-  - Creates automatic commits at customizable intervals
+  - Smart change detection and consolidation
+  - Function-level modification tracking
+  - Intelligent duplicate filtering
+  - Language-aware code analysis
+  - Automatic commit generation
 
-- **🤖 AI-Powered Commit Messages**
+- **📊 Comprehensive Analytics**
+
+  - Project-level statistics
+  - Language usage metrics
+  - Function change tracking
+  - Time-based analytics
+  - Activity heatmaps
+
+- **🤖 AI-Powered Insights**
 
   - Generate meaningful commit messages using AI
   - Local LLM support via Ollama for privacy
   - Context-aware messages based on code changes
-  - Fallback to timestamp format if needed
-
-- **📊 Comprehensive Statistics**
-
-  - Daily activity breakdowns
-  - Project-level analytics
-  - File type statistics
-  - Time distribution analytics
+  - Function-level change detection
+  - Smart change consolidation
 
 - **🔐 Secure & Private**
 
@@ -35,18 +38,20 @@ Track your coding activity automatically and build a comprehensive history of yo
   - Support for custom Git repositories
   - Support for GitHub Enterprise
   - Full control over your data
+  - Local data processing
 
-- **⚡ Easy to Use**
+- **⚡ Developer Experience**
   - One-click GitHub sign-in
-  - Simple enable/disable toggle
-  - Flexible configuration options
+  - Automatic change tracking
+  - Real-time statistics
+  - Customizable settings
   - Minimal setup needed
 
 ## 🚀 Example Usage
 
-Here's an example of the activity summary that gets generated:
+Here's an example of the enhanced activity summary that gets generated:
 
-# my-code-activity-ext - Activity Summary 
+# Activity Summary
 
 ## Overall Statistics
 
@@ -56,25 +61,24 @@ Here's an example of the activity summary that gets generated:
 | **Lines Removed** (➖) | 1,256                               |
 | **Net Change** (↕)    | +2,591                              |
 | **Active Time** (⌚)   | 6 hours 45 minutes                  |
+| **Functions Modified** | 24                                   |
+| **Languages Used**     | TypeScript, SCSS, SVG               |
 
+## Code Changes
 
-## Modified Files
+### Modified Files
 - **src/features/dashboard/components/AnalyticsChart.tsx** (+856, -234)
+  - Functions: updateChartData, calculateMetrics
 - **src/api/activityTracker.ts** (+745, -122)
+  - Functions: trackChanges, aggregateStats
 - **src/hooks/useActivityMetrics.ts** (+523, -89)
-- **styles/dashboard.scss** (+367, -156)
-- **src/utils/dataTransformers.ts** (+312, -45)
-- **tests/integration/tracking.test.ts** (+289, -0)
-- **src/store/activitySlice.ts** (+278, -167)
-- **public/assets/icons/activity.svg** (+156, -98)
-- **README.md** (+178, -145)
-- **package.json** (+143, -200)
+  - Functions: useMetrics, processData
 
 ## Visualizations
 
 ### By File Type (Lines Changed)
 
-```mermaid
+\`\`\`mermaid
 pie showData
 title Lines changed by file type
 ".tsx" : 1090
@@ -83,39 +87,30 @@ title Lines changed by file type
 ".svg" : 254
 ".md" : 323
 ".json" : 343
-```
+\`\`\`
 
-### By Hour (Estimated Activity Count)
+### By Hour (Activity Heatmap)
 
-```mermaid
+\`\`\`mermaid
 pie showData
-title Coding activity by hour (count of changes)
+title Coding activity by hour
 "09h" : 450
 "10h" : 785
 "11h" : 923
 "13h" : 654
 "14h" : 589
 "15h" : 446
-```
+\`\`\`
 
-### Top Languages
+### Language Distribution
 
-| Language    | Percentage |
-|------------|------------|
-| TypeScript | 62.8%      |
-| SCSS       | 15.4%      |
-| SVG        | 8.7%       |
-| JSON       | 7.2%       |
-| Markdown   | 5.9%       |
-
-> **Last Updated:** 30/12/2024 15:45:23
-
-The extension automatically commits these summaries to your GitHub repository, providing a detailed history of your coding activity. You can view these summaries directly on GitHub, and they include:
-- Detailed statistics about lines added/removed
-- List of modified files with change counts
-- Visual charts showing distribution by file type
-- Hourly activity breakdowns
-- Automatic timestamps for tracking
+| Language    | Percentage | Functions Modified |
+|------------|------------|-------------------|
+| TypeScript | 62.8%      | 18               |
+| SCSS       | 15.4%      | N/A              |
+| SVG        | 8.7%       | N/A              |
+| JSON       | 7.2%       | N/A              |
+| Markdown   | 5.9%       | N/A              |
 
 ## 🚀 Getting Started
 
@@ -128,7 +123,7 @@ The extension automatically commits these summaries to your GitHub repository, p
 
 Access settings through VS Code's settings (Ctrl+,):
 
-```json
+\`\`\`json
 {
     // Minutes between activity commits
     "codeTracker.commitInterval": 5,
@@ -148,7 +143,7 @@ Access settings through VS Code's settings (Ctrl+,):
     // Ollama model for commit messages
     "codeTracker.ollamaModel": "codellama"
 }
-```
+\`\`\`
 
 ### AI Commit Messages
 
@@ -160,37 +155,36 @@ The extension can generate meaningful commit messages using AI:
 4. The extension will now generate context-aware commit messages
 
 Example AI-generated commit message:
-```
+\`\`\`
 feat(tracking): update dashboard components and analytics
 
 - Modified functions: updateChartData, calculateMetrics
 - Files: AnalyticsChart.tsx, activityTracker.ts
 - Activity duration: 15 minutes
-```
+- Function changes: 2 added, 1 modified
+\`\`\`
 
-### Custom Git Repository
+## 📊 Enhanced Tracking Details
 
-You can use your own Git repository:
+The extension now tracks:
 
-1. Create a repository (GitHub, GitHub Enterprise, or any Git server)
-2. Set the `customRemoteUrl` in settings to your repository URL
-3. Configure the branch name if needed
-4. The extension will use your repository for activity tracking
+- **Code Changes**
+  - Lines added/removed
+  - Function-level modifications
+  - Language-specific changes
+  - Project context
 
-## 📋 Available Commands
+- **Time Analytics**
+  - Active coding time
+  - Time per project
+  - Peak activity hours
+  - Language usage time
 
-- `Sign in with GitHub`: Connect your GitHub account
-- `Toggle Code Tracking`: Enable/disable activity tracking
-
-## 📊 Activity Tracking Details
-
-The extension tracks:
-
-- Lines of code added/removed
-- Active coding time (excluding idle periods)
-- File modifications with timestamps
-- Project-specific statistics
-- Language and file type analytics
+- **Project Metrics**
+  - Project-specific statistics
+  - Language distribution
+  - Most modified files
+  - Function change frequency
 
 ## 🔧 System Requirements
 
