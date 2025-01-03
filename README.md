@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
 
-Track your coding activity automatically and build a comprehensive history of your development journey. This VS Code extension seamlessly records your coding sessions and commits them to a private GitHub repository, helping you maintain a detailed log of your programming activities.
+Track your coding activity automatically and build a comprehensive history of your development journey. This VS Code extension seamlessly records your coding sessions and commits them to a GitHub repository, helping you maintain a detailed log of your programming activities.
 
 ## ✨ Key Features
 
@@ -14,6 +14,13 @@ Track your coding activity automatically and build a comprehensive history of yo
   - Monitors active coding time
   - Records file modifications
   - Creates automatic commits at customizable intervals
+
+- **🤖 AI-Powered Commit Messages**
+
+  - Generate meaningful commit messages using AI
+  - Local LLM support via Ollama for privacy
+  - Context-aware messages based on code changes
+  - Fallback to timestamp format if needed
 
 - **📊 Comprehensive Statistics**
 
@@ -25,13 +32,15 @@ Track your coding activity automatically and build a comprehensive history of yo
 - **🔐 Secure & Private**
 
   - Secure GitHub authentication
-  - Private repository storage
+  - Support for custom Git repositories
+  - Support for GitHub Enterprise
   - Full control over your data
 
 - **⚡ Easy to Use**
   - One-click GitHub sign-in
   - Simple enable/disable toggle
-  - Minimal configuration needed
+  - Flexible configuration options
+  - Minimal setup needed
 
 ## 🚀 Example Usage
 
@@ -121,9 +130,41 @@ Access settings through VS Code's settings (Ctrl+,):
 
 \`\`\`json
 {
-"codeTracker.commitInterval": 5 // Minutes between activity commits (default: 5)
+"codeTracker.commitInterval": 5,          // Minutes between activity commits (default: 5)
+"codeTracker.customRemoteUrl": "",        // Custom Git remote URL (optional)
+"codeTracker.branchName": "main",         // Git branch name for tracking data
+"codeTracker.enableAiCommits": false,     // Enable AI-generated commit messages
+"codeTracker.ollamaUrl": "localhost:11434", // Ollama server URL
+"codeTracker.ollamaModel": "codellama"    // Ollama model for commit messages
 }
 \`\`\`
+
+### AI Commit Messages
+
+The extension can generate meaningful commit messages using AI:
+
+1. Install [Ollama](https://ollama.ai/) on your system
+2. Pull the codellama model: `ollama pull codellama`
+3. Enable AI commits in VS Code settings
+4. The extension will now generate context-aware commit messages
+
+Example AI-generated commit message:
+```
+feat(tracking): update dashboard components and analytics
+
+- Modified functions: updateChartData, calculateMetrics
+- Files: AnalyticsChart.tsx, activityTracker.ts
+- Activity duration: 15 minutes
+```
+
+### Custom Git Repository
+
+You can use your own Git repository:
+
+1. Create a repository (GitHub, GitHub Enterprise, or any Git server)
+2. Set the `customRemoteUrl` in settings to your repository URL
+3. Configure the branch name if needed
+4. The extension will use your repository for activity tracking
 
 ## 📋 Available Commands
 
@@ -144,8 +185,9 @@ The extension tracks:
 
 - VS Code 1.75.0 or higher
 - Git installed on your system
-- GitHub account
+- GitHub account (or custom Git repository)
 - Internet connection for syncing
+- Ollama (optional, for AI commit messages)
 
 ## 🤝 Contributing
 
@@ -167,4 +209,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Note**: Your activity data is stored in a public GitHub repository that you can make private at any time. The extension never shares your coding activity without your explicit permission.
+**Note**: Your activity data is stored in a Git repository that you control. The extension never shares your coding activity without your explicit permission.
