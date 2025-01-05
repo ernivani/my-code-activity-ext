@@ -144,26 +144,44 @@ export async function ensureLocalRepo(localPath: string, remoteUrl: string, toke
             .catch(() => false);
 
         if (!isGitRepo) {
-            console.log('Creating local repository...');
             await fs.promises.mkdir(localPath, { recursive: true });
             await exec(`git init ${localPath}`);
             await exec(`git -C ${localPath} remote add origin "${authenticatedUrl}"`);
 
-            // Create initial commit with README
-            await createInitialCommit(localPath);
+            // Configure git user
+            await exec(`git -C ${localPath} config user.email || git -C ${localPath} config user.email "code-tracker@example.com"`);
+            await exec(`git -C ${localPath} config user.name || git -C ${localPath} config user.name "Code Tracker"`);
 
-            // Try to force push
+            // Get current branch
+            const branchName = Config.getBranchName();
+            await exec(`git -C ${localPath} checkout -b ${branchName}`);
+
+            // Check if remote repository exists by trying to fetch
             try {
-                const branchName = Config.getBranchName();
-                await exec(`git -C ${localPath} push -u origin ${branchName} --force`);
-                console.log('Remote repository initialized successfully');
-            } catch (error: unknown) {
-                if (error instanceof Error) {
-                    if (error.message.includes('Repository not found') || error.message.includes('not found')) {
-                        throw new Error(`Remote repository not found. For custom Git providers, please create the repository '${remoteUrl}' first.`);
-                    }
+                await exec(`git -C ${localPath} ls-remote --exit-code origin`);
+                
+                // Try to pull existing repository
+                try {
+                    await exec(`git -C ${localPath} fetch origin ${branchName}`);
+                    await exec(`git -C ${localPath} reset --hard origin/${branchName}`);
+                } catch (pullError) {
+                    await exec(`git -C ${localPath} pull origin ${branchName} --allow-unrelated-histories`);
                 }
-                throw error;
+            } catch (error) {
+                // Create initial commit with README
+                await createInitialCommit(localPath);
+
+                // Try to push
+                try {
+                    await exec(`git -C ${localPath} push -u origin ${branchName}`);
+                } catch (error: unknown) {
+                    if (error instanceof Error) {
+                        if (error.message.includes('Repository not found') || error.message.includes('not found')) {
+                            throw new Error(`Remote repository not found. For custom Git providers, please create the repository '${remoteUrl}' first.`);
+                        }
+                    }
+                    throw error;
+                }
             }
         } else {
             // Check if remote URL matches (without credentials for comparison)
@@ -180,31 +198,41 @@ export async function ensureLocalRepo(localPath: string, remoteUrl: string, toke
                 // If remote doesn't exist or URL is invalid, add it
                 await exec(`git -C ${localPath} remote add origin "${authenticatedUrl}"`);
             }
-        }
 
-        // Configure git user
-        await exec(`git -C ${localPath} config user.email || git -C ${localPath} config user.email "code-tracker@example.com"`);
-        await exec(`git -C ${localPath} config user.name || git -C ${localPath} config user.name "Code Tracker"`);
+            // Configure git user
+            await exec(`git -C ${localPath} config user.email || git -C ${localPath} config user.email "code-tracker@example.com"`);
+            await exec(`git -C ${localPath} config user.name || git -C ${localPath} config user.name "Code Tracker"`);
 
-        // Get current branch
-        const branchName = Config.getBranchName();
-        
-        try {
-            // Check if branch exists locally
-            await exec(`git -C ${localPath} rev-parse --verify ${branchName}`);
-            // Switch to the branch if it exists
-            await exec(`git -C ${localPath} checkout ${branchName}`);
-        } catch {
-            // Branch doesn't exist, create it
-            await exec(`git -C ${localPath} checkout -b ${branchName}`);
-        }
+            // Get current branch
+            const branchName = Config.getBranchName();
+            
+            try {
+                // Check if branch exists locally
+                await exec(`git -C ${localPath} rev-parse --verify ${branchName}`);
+                // Switch to the branch if it exists
+                await exec(`git -C ${localPath} checkout ${branchName}`);
+            } catch {
+                // Branch doesn't exist, create it
+                await exec(`git -C ${localPath} checkout -b ${branchName}`);
+            }
 
-        try {
-            // Try to pull from remote branch if it exists
-            await exec(`git -C ${localPath} pull origin ${branchName} --allow-unrelated-histories`);
-        } catch (error) {
-            console.log(`Remote branch ${branchName} not found or other error:`, error);
-            // For custom repositories, we've already handled initialization
+            // Always try to pull latest changes
+            try {
+                // First fetch from remote
+                await exec(`git -C ${localPath} fetch origin ${branchName}`);
+
+                // Try to reset to remote state first
+                try {
+                    await exec(`git -C ${localPath} reset --hard origin/${branchName}`);
+                } catch (resetError) {
+                    // Continue anyway as we might need to push our changes
+                }
+
+                // Now try to pull
+                await exec(`git -C ${localPath} pull origin ${branchName} --allow-unrelated-histories`);
+            } catch (error) {
+                // Continue anyway as we might need to push our changes
+            }
         }
     } catch (error) {
         console.error('Failed to set up repository:', error);
@@ -238,13 +266,11 @@ Last Updated: ${new Date().toISOString()}
 
     const readmePath = path.join(localPath, 'README.md');
     if (!fs.existsSync(readmePath)) {
-        console.log('Creating README.md...');
         fs.writeFileSync(readmePath, readmeContent, 'utf-8');
         try {
             await exec(`git -C ${localPath} add README.md`);
             await exec(`git -C ${localPath} commit -m "Initialize repository with README"`);
             // No need to push here as it will be handled by the calling function
-            console.log('README.md created and committed successfully');
         } catch (err) {
             console.error('Failed to commit README:', err);
         }
@@ -270,7 +296,19 @@ export async function commitAndPush(localPath: string, message: string, token: s
         }
 
         const branchName = Config.getBranchName();
-        await exec(`git -C ${localPath} add .`);
+        
+        // Check git status before add
+        const { stdout: statusBefore } = await exec(`git -C ${localPath} status --porcelain`);
+        if (!statusBefore) {
+            return;
+        }
+
+        // Add all changes and verify
+        await exec(`git -C ${localPath} add -A`);
+        const { stdout: statusAfter } = await exec(`git -C ${localPath} status --porcelain`);
+        if (!statusAfter) {
+            return;
+        }
 
         let commitMessage = message;
         if (Config.isAiCommitEnabled()) {
@@ -278,7 +316,7 @@ export async function commitAndPush(localPath: string, message: string, token: s
                 const diffService = GitDiffService.getInstance();
                 const ollamaService = OllamaService.getInstance();
 
-                const [diff, files, functions] = await Promise.all([
+                const [diff, files] = await Promise.all([
                     diffService.getGitDiff(localPath),
                     diffService.getModifiedFiles(localPath),
                     diffService.getModifiedFunctions(localPath)
@@ -295,7 +333,7 @@ export async function commitAndPush(localPath: string, message: string, token: s
 
         // Escape quotes and properly wrap the commit message
         const escapedMessage = commitMessage.replace(/"/g, '\\"');
-        await exec(`git -C ${localPath} commit -m "${escapedMessage}" || true`);  // || true to handle "nothing to commit" case
+        await exec(`git -C ${localPath} commit -m "${escapedMessage}"`);
 
         try {
             // Try normal push first
@@ -305,7 +343,6 @@ export async function commitAndPush(localPath: string, message: string, token: s
                 (pushError.message.includes('non-fast-forward') || 
                  pushError.message.includes('fetch first') || 
                  pushError.message.includes('rejected'))) {
-                console.log('Push rejected, trying force push...');
                 // Try to force push
                 await exec(`git -C ${localPath} push -u origin ${branchName} --force`);
             } else {

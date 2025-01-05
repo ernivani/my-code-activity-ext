@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import {
-  getGithubToken,
   signInToGitHub,
   tryGetExistingSession,
   fetchUserInfo,
@@ -18,7 +17,6 @@ import {
 } from "./tracking/activity";
 import { StatusBarManager } from "./tracking/status-bar";
 import { Config } from "./utils/config";
-import { exec } from "child_process";
 
 let REMOTE_REPO_HTTPS_URL: string | undefined;
 
@@ -83,33 +81,12 @@ export async function activate(context: vscode.ExtensionContext) {
         try {
           await createActivityLog(Config.TRACKING_REPO_PATH);
           const summary = await createSummary();
-          
-          // Format remote URL to include token if it's a custom repository
-          const { isCustom } = await Config.getToken();
-          if (isCustom) {
-            const urlObj = new URL(REMOTE_REPO_HTTPS_URL);
-            let authenticatedUrl;
-            if (urlObj.hostname === 'gitlab.com') {
-              authenticatedUrl = REMOTE_REPO_HTTPS_URL.replace(/^https?:\/\//, `https://git:${token}@`);
-            } else {
-              authenticatedUrl = REMOTE_REPO_HTTPS_URL.replace(/^https?:\/\//, `https://oauth2:${token}@`);
-            }
-            await exec(`git -C ${Config.TRACKING_REPO_PATH} remote set-url origin "${authenticatedUrl}"`);
-          }
-
-          // Add and commit changes
-          await exec(`git -C ${Config.TRACKING_REPO_PATH} add .`);
-          await exec(`git -C ${Config.TRACKING_REPO_PATH} commit -m "${summary}" || true`);
-          
-          // Force push
-          const branchName = Config.getBranchName();
-          await exec(`git -C ${Config.TRACKING_REPO_PATH} push -u origin ${branchName} --force`);
-
-          // Reset URL back to non-authenticated version
-          if (isCustom) {
-            await exec(`git -C ${Config.TRACKING_REPO_PATH} remote set-url origin "${REMOTE_REPO_HTTPS_URL}"`);
-          }
-
+          await commitAndPush(
+            Config.TRACKING_REPO_PATH,
+            summary,
+            token,
+            REMOTE_REPO_HTTPS_URL
+          );
           vscode.window.showInformationMessage("Successfully force pushed code tracking data");
           outputChannel.appendLine("Force push completed successfully");
         } catch (error) {
@@ -127,7 +104,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const customUrl = Config.getCustomRemoteUrl();
   if (customUrl) {
     outputChannel.appendLine("Found custom remote URL configuration");
-    const { token, isCustom } = await Config.getToken();
+    const { token } = await Config.getToken();
     
     if (token) {
       outputChannel.appendLine("Using existing token with custom URL");
