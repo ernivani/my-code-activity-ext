@@ -8,24 +8,36 @@ export class Config {
     private static readonly TOKEN_FILE = path.join(Config.CONFIG_DIR, 'github-token.json');
     public static readonly TRACKING_REPO_PATH = path.join(os.homedir(), '.code-tracking');
 
-    public static async saveGithubToken(token: string): Promise<void> {
+    public static async saveToken(token: string, isCustom: boolean = false): Promise<void> {
         try {
             await fs.promises.mkdir(Config.CONFIG_DIR, { recursive: true });
-            await fs.promises.writeFile(Config.TOKEN_FILE, JSON.stringify({ token }, null, 2), 'utf-8');
+            await fs.promises.writeFile(Config.TOKEN_FILE, JSON.stringify({ 
+                token,
+                isCustom
+            }, null, 2), 'utf-8');
         } catch (error) {
-            console.error('Failed to save GitHub token:', error);
+            console.error('Failed to save token:', error);
             throw error;
         }
     }
 
-    public static async getGithubToken(): Promise<string | null> {
+    public static async getToken(): Promise<{ token: string | null, isCustom: boolean }> {
         try {
             const data = await fs.promises.readFile(Config.TOKEN_FILE, 'utf-8');
-            const { token } = JSON.parse(data);
-            return token;
+            const { token, isCustom = false } = JSON.parse(data);
+            return { token, isCustom };
         } catch {
-            return null;
+            return { token: null, isCustom: false };
         }
+    }
+
+    public static async saveGithubToken(token: string): Promise<void> {
+        return Config.saveToken(token, false);
+    }
+
+    public static async getGithubToken(): Promise<string | null> {
+        const { token, isCustom } = await Config.getToken();
+        return isCustom ? null : token;
     }
 
     public static getCommitIntervalMs(): number {
