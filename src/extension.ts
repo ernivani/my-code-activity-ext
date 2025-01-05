@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import {
-  getGithubToken,
   signInToGitHub,
   tryGetExistingSession,
   fetchUserInfo,
@@ -49,48 +48,61 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(signInCommand);
 
+  // Add custom token command
+  const setCustomTokenCommand = vscode.commands.registerCommand(
+    "codeTracker.setCustomToken",
+    async () => {
+      const token = await vscode.window.showInputBox({
+        prompt: "Enter your custom token",
+        password: true,
+        placeHolder: "Your custom token"
+      });
+
+      if (token) {
+        try {
+          await Config.saveToken(token, true);
+          outputChannel.appendLine("Custom token saved successfully");
+          statusBar.update(true);
+          await setupCodeTracking(context);
+          vscode.window.showInformationMessage("Custom token set successfully");
+        } catch (error) {
+          outputChannel.appendLine(`Failed to save custom token: ${error}`);
+          vscode.window.showErrorMessage(`Failed to save custom token: ${error}`);
+        }
+      }
+    }
+  );
+  context.subscriptions.push(setCustomTokenCommand);
+
   // Add force push command
   const forcePushCommand = vscode.commands.registerCommand(
     "codeTracker.forcePush",
     async () => {
       outputChannel.appendLine("Force pushing code tracking data...");
-      const currentToken = await getGithubToken();
-      if (currentToken && REMOTE_REPO_HTTPS_URL) {
+      const { token } = await Config.getToken();
+      if (token && REMOTE_REPO_HTTPS_URL) {
         try {
           await createActivityLog(Config.TRACKING_REPO_PATH);
           const summary = await createSummary();
           await commitAndPush(
             Config.TRACKING_REPO_PATH,
             summary,
-            currentToken,
-            REMOTE_REPO_HTTPS_URL as string
+            token,
+            REMOTE_REPO_HTTPS_URL
           );
-          vscode.window.showInformationMessage("Successfully pushed code tracking data");
+          vscode.window.showInformationMessage("Successfully force pushed code tracking data");
           outputChannel.appendLine("Force push completed successfully");
         } catch (error) {
           outputChannel.appendLine(`Force push failed: ${error}`);
           vscode.window.showErrorMessage(`Failed to push code tracking data: ${error}`);
         }
       } else {
-        vscode.window.showErrorMessage("Please sign in first to push code tracking data");
+        vscode.window.showErrorMessage("Please set up a token first to push code tracking data");
       }
     }
   );
   context.subscriptions.push(forcePushCommand);
 
-  const openDashboard = vscode.commands.registerCommand('codeTracker.openDashboard', async () => {
-    try {
-      if (!dashboardServer) {
-        dashboardServer = new DashboardServer();
-        await dashboardServer.start();
-      }
-      vscode.env.openExternal(vscode.Uri.parse('http://localhost:3000'));
-    } catch (error: unknown) {
-      vscode.window.showErrorMessage('Failed to open dashboard: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  });
-
-  context.subscriptions.push(openDashboard);
   // First check for stored token
   outputChannel.appendLine("Checking for stored GitHub token...");
   const storedToken = await Config.getGithubToken();
@@ -102,7 +114,10 @@ export async function activate(context: vscode.ExtensionContext) {
         outputChannel.appendLine(
           `Valid token found for user: ${userInfo.login}`,
         );
-        statusBar.update();
+        vscode.window.showInformationMessage(
+          `Auto-signed in as ${userInfo.login}`,
+        );
+        statusBar.update(true);
         await setupCodeTracking(context);
         return;
       }
@@ -113,7 +128,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   }
 
-  // If no valid stored token, try existing session
+  // Only try GitHub session if no valid token or custom URL exists
   outputChannel.appendLine("Checking for existing GitHub session...");
   const session = await tryGetExistingSession();
   if (session) {
@@ -124,12 +139,12 @@ export async function activate(context: vscode.ExtensionContext) {
     await setupCodeTracking(context);
   } else {
     outputChannel.appendLine(
-      "No existing GitHub session found. Attempting automatic sign-in...",
+      "No existing GitHub session found. Please sign in or set a custom token.",
     );
-    statusBar.update();
+    statusBar.update(false);
     if (await signInToGitHub()) {
       outputChannel.appendLine("Successfully signed in to GitHub");
-      statusBar.update();
+      statusBar.update(true);
       await setupCodeTracking(context);
     } else {
       vscode.window
@@ -152,19 +167,22 @@ export async function deactivate() {
   outputChannel.appendLine(`Time: ${new Date().toLocaleString()}`);
   
   // Push any remaining changes before deactivating
-  const token = await Config.getGithubToken();
+  const { token } = await Config.getToken();
   if (token && REMOTE_REPO_HTTPS_URL) {
     outputChannel.appendLine("Pushing final changes before shutdown...");
     createActivityLog(Config.TRACKING_REPO_PATH)
       .then(() => createSummary())
-      .then(summary => 
-        commitAndPush(
+      .then(summary => {
+        if (!REMOTE_REPO_HTTPS_URL) {
+          throw new Error('Remote URL is not configured');
+        }
+        return commitAndPush(
           Config.TRACKING_REPO_PATH,
           summary,
           token,
-          REMOTE_REPO_HTTPS_URL as string
-        )
-      )
+          REMOTE_REPO_HTTPS_URL
+        );
+      })
       .then(() => outputChannel.appendLine("Final push completed successfully"))
       .catch(error => outputChannel.appendLine(`Final push failed: ${error}`));
   }
@@ -177,33 +195,51 @@ export async function deactivate() {
 
 async function setupCodeTracking(context: vscode.ExtensionContext) {
   outputChannel.appendLine("Setting up code tracking...");
-  const token = await getGithubToken();
-  if (!token) {
-    outputChannel.appendLine("No GitHub token found");
-    vscode.window.showWarningMessage("Please sign in first.");
-    return;
-  }
-
+  
   try {
-    outputChannel.appendLine("Fetching GitHub user info...");
-    const userInfo = await fetchUserInfo(token);
-    if (!userInfo.login) {
-      outputChannel.appendLine("Failed to get GitHub username");
-      vscode.window.showErrorMessage("Could not determine GitHub username.");
+    // Get token and check if it's a custom token
+    const { token, isCustom } = await Config.getToken();
+    if (!token) {
+      outputChannel.appendLine("No token found");
+      vscode.window.showWarningMessage("Please set up a token first.");
       return;
     }
-    outputChannel.appendLine(`GitHub username: ${userInfo.login}`);
 
-    outputChannel.appendLine("Ensuring code-tracking repository exists...");
-    REMOTE_REPO_HTTPS_URL = await ensureCodeTrackingRepo(token, userInfo.login);
-    outputChannel.appendLine("Code tracking repository is ready");
+    let remoteUrl: string;
+    if (isCustom) {
+      // For custom tokens, we must have a custom remote URL
+      const customUrl = Config.getCustomRemoteUrl();
+      if (!customUrl) {
+        outputChannel.appendLine("No custom remote URL configured");
+        vscode.window.showErrorMessage("Please configure a custom remote URL in settings (codeTracker.customRemoteUrl).");
+        return;
+      }
+      remoteUrl = customUrl;
+      outputChannel.appendLine(`Using custom remote URL: ${customUrl}`);
+    } else {
+      // For GitHub tokens, get user info and ensure repo exists
+      outputChannel.appendLine("Using GitHub token, fetching user info...");
+      const userInfo = await fetchUserInfo(token);
+      if (!userInfo.login) {
+        outputChannel.appendLine("Failed to get GitHub username");
+        vscode.window.showErrorMessage("Could not determine GitHub username.");
+        return;
+      }
+      outputChannel.appendLine(`GitHub username: ${userInfo.login}`);
+
+      outputChannel.appendLine("Ensuring code-tracking repository exists...");
+      remoteUrl = await ensureCodeTrackingRepo(token, userInfo.login);
+    }
+
+    REMOTE_REPO_HTTPS_URL = remoteUrl;
+    outputChannel.appendLine("Remote repository URL is configured");
 
     outputChannel.appendLine(
       `Setting up local repository at ${Config.TRACKING_REPO_PATH}...`,
     );
     await ensureLocalRepo(
       Config.TRACKING_REPO_PATH,
-      REMOTE_REPO_HTTPS_URL,
+      remoteUrl,
       token,
     );
     outputChannel.appendLine("Local repository is ready");
@@ -224,8 +260,8 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
       `Setting up auto-commit timer (interval: ${Config.getCommitIntervalMs()}ms)...`,
     );
     const timer = setInterval(async () => {
-      const currentToken = await getGithubToken();
-      if (currentToken && REMOTE_REPO_HTTPS_URL) {
+      const { token } = await Config.getToken();
+      if (token && REMOTE_REPO_HTTPS_URL) {
         outputChannel.appendLine("Creating activity log...");
         await createActivityLog(Config.TRACKING_REPO_PATH);
         const summary = await createSummary();
@@ -233,8 +269,8 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
         await commitAndPush(
           Config.TRACKING_REPO_PATH,
           summary,
-          currentToken,
-          REMOTE_REPO_HTTPS_URL as string
+          token,
+          REMOTE_REPO_HTTPS_URL
         );
       }
     }, Config.getCommitIntervalMs());
