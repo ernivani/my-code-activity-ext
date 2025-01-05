@@ -17,10 +17,13 @@ import {
 } from "./tracking/activity";
 import { StatusBarManager } from "./tracking/status-bar";
 import { Config } from "./utils/config";
+import { DashboardServer } from "./dashboard/server";
 
 let REMOTE_REPO_HTTPS_URL: string | undefined;
 
 let outputChannel: vscode.OutputChannel;
+
+let dashboardServer: DashboardServer | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Code Tracking");
@@ -35,11 +38,11 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.appendLine("Attempting GitHub sign in...");
       if (await signInToGitHub()) {
         outputChannel.appendLine("Successfully signed in to GitHub");
-        statusBar.update(true);
+        statusBar.update();
         await setupCodeTracking(context);
       } else {
         outputChannel.appendLine("Failed to sign in to GitHub");
-        statusBar.update(false);
+        statusBar.update();
       }
     },
   );
@@ -100,61 +103,28 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(forcePushCommand);
 
-  // First check for custom configuration
-  const customUrl = Config.getCustomRemoteUrl();
-  if (customUrl) {
-    outputChannel.appendLine("Found custom remote URL configuration");
-    const { token } = await Config.getToken();
-    
-    if (token) {
-      outputChannel.appendLine("Using existing token with custom URL");
-      statusBar.update(true);
-      await setupCodeTracking(context);
-      return;
-    } else {
-      outputChannel.appendLine("Custom URL configured but no token found");
-      vscode.window.showInformationMessage(
-        "Custom repository URL is configured. Please set your token.",
-        "Set Custom Token"
-      ).then(choice => {
-        if (choice === "Set Custom Token") {
-          vscode.commands.executeCommand("codeTracker.setCustomToken");
-        }
-      });
-      return;
-    }
-  }
-
-  // If no custom URL is configured, check for GitHub tokens
-  outputChannel.appendLine("Checking for stored token...");
-  const { token, isCustom } = await Config.getToken();
-  
-  if (token) {
-    outputChannel.appendLine("Found stored token");
-    if (isCustom) {
-      outputChannel.appendLine("Found custom token but no custom URL configured");
-      vscode.window.showErrorMessage("Please configure a custom remote URL in settings (codeTracker.customRemoteUrl).");
-      return;
-    } else {
-      // Validate GitHub token
-      try {
-        const userInfo = await fetchUserInfo(token);
-        if (userInfo.login) {
-          outputChannel.appendLine(
-            `Valid GitHub token found for user: ${userInfo.login}`,
-          );
-          vscode.window.showInformationMessage(
-            `Auto-signed in as ${userInfo.login}`,
-          );
-          statusBar.update(true);
-          await setupCodeTracking(context);
-          return;
-        }
-      } catch (error) {
+  // First check for stored token
+  outputChannel.appendLine("Checking for stored GitHub token...");
+  const storedToken = await Config.getGithubToken();
+  if (storedToken) {
+    outputChannel.appendLine("Found stored token, validating...");
+    try {
+      const userInfo = await fetchUserInfo(storedToken);
+      if (userInfo.login) {
         outputChannel.appendLine(
-          "Stored GitHub token is invalid, will try other authentication methods",
+          `Valid token found for user: ${userInfo.login}`,
         );
+        vscode.window.showInformationMessage(
+          `Auto-signed in as ${userInfo.login}`,
+        );
+        statusBar.update(true);
+        await setupCodeTracking(context);
+        return;
       }
+    } catch (error) {
+      outputChannel.appendLine(
+        "Stored token is invalid, will try other authentication methods",
+      );
     }
   }
 
@@ -165,30 +135,31 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine(
       `Found existing session for user: ${session.account.label}`,
     );
-    vscode.window.showInformationMessage(
-      `Auto-signed in as ${session.account.label}`,
-    );
-    statusBar.update(true);
+    statusBar.update();
     await setupCodeTracking(context);
   } else {
     outputChannel.appendLine(
       "No existing GitHub session found. Please sign in or set a custom token.",
     );
     statusBar.update(false);
-    vscode.window
-      .showInformationMessage(
-        "Please sign in with GitHub or set a custom token for code tracking.",
-        "Sign In with GitHub",
-        "Set Custom Token"
-      )
-      .then((choice) => {
-        if (choice === "Sign In with GitHub") {
-          vscode.commands.executeCommand("codeTracker.signInWithGitHub");
-        } else if (choice === "Set Custom Token") {
-          vscode.commands.executeCommand("codeTracker.setCustomToken");
-        }
-      });
+    if (await signInToGitHub()) {
+      outputChannel.appendLine("Successfully signed in to GitHub");
+      statusBar.update(true);
+      await setupCodeTracking(context);
+    } else {
+      vscode.window
+        .showInformationMessage(
+          "Please sign in with GitHub for code tracking.",
+          "Sign In",
+        )
+        .then((choice) => {
+          if (choice === "Sign In") {
+            vscode.commands.executeCommand("codeTracker.signInWithGitHub");
+          }
+        });
+    }
   }
+  
 }
 
 export async function deactivate() {
@@ -215,6 +186,11 @@ export async function deactivate() {
       .then(() => outputChannel.appendLine("Final push completed successfully"))
       .catch(error => outputChannel.appendLine(`Final push failed: ${error}`));
   }
+
+  if (dashboardServer) {
+    return dashboardServer.stop();
+  }
+  return Promise.resolve();
 }
 
 async function setupCodeTracking(context: vscode.ExtensionContext) {

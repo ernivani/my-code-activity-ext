@@ -9,23 +9,21 @@ Track your coding activity automatically and build a comprehensive history of yo
 ## ✨ Key Features
 
 - **🔄 Enhanced Activity Tracking**
-
   - Smart change detection and consolidation
   - Function-level modification tracking
   - Intelligent duplicate filtering
   - Language-aware code analysis
   - Automatic commit generation
 
-- **📊 Comprehensive Analytics**
-
-  - Project-level statistics
-  - Language usage metrics
-  - Function change tracking
-  - Time-based analytics
+- **📊 Interactive Dashboard**
+  - Real-time activity visualization
+  - Daily/Weekly/Monthly views
+  - Project distribution charts
+  - Language usage breakdown
   - Activity heatmaps
+  - Dark/Light theme support
 
 - **🤖 AI-Powered Insights**
-
   - Generate meaningful commit messages using AI
   - Local LLM support via Ollama for privacy
   - Context-aware messages based on code changes
@@ -33,7 +31,6 @@ Track your coding activity automatically and build a comprehensive history of yo
   - Smart change consolidation
 
 - **🔐 Secure & Private**
-
   - Secure GitHub authentication
   - Support for custom Git repositories
   - Support for GitHub Enterprise
@@ -46,6 +43,35 @@ Track your coding activity automatically and build a comprehensive history of yo
   - Real-time statistics
   - Customizable settings
   - Minimal setup needed
+
+## 🚀 Visual Analytics Dashboard
+
+The extension now includes a powerful web-based dashboard for visualizing your coding activity:
+
+### 📊 Interactive Analytics
+- Real-time activity tracking with daily/weekly/monthly views
+- Project distribution visualization with doughnut charts
+- Language usage breakdown with time percentages
+- Hourly activity heatmap showing peak coding times
+
+### 🌈 Dashboard Features
+- Modern, GitHub-inspired interface
+- Dark/Light theme support matching VS Code preferences
+- Responsive design for all screen sizes
+- Real-time data updates
+- Export capabilities (coming soon)
+
+### 📈 Available Charts
+- Activity timeline with trend analysis
+- Project distribution pie charts
+- Language usage breakdown
+- Hourly activity heatmap
+- Detailed statistics cards
+
+To access the dashboard:
+1. Open VS Code Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+2. Search for "Code Activity: Open Dashboard"
+3. The dashboard will open in your default browser
 
 ## 🚀 Example Usage
 
@@ -78,7 +104,7 @@ Here's an example of the enhanced activity summary that gets generated:
 
 ### By File Type (Lines Changed)
 
-\`\`\`mermaid
+```mermaid
 pie showData
 title Lines changed by file type
 ".tsx" : 1090
@@ -87,30 +113,20 @@ title Lines changed by file type
 ".svg" : 254
 ".md" : 323
 ".json" : 343
-\`\`\`
+```
 
 ### By Hour (Activity Heatmap)
 
-\`\`\`mermaid
+```mermaid
 pie showData
-title Coding activity by hour
+title Coding activity by hour (count of changes)
 "09h" : 450
 "10h" : 785
 "11h" : 923
 "13h" : 654
 "14h" : 589
 "15h" : 446
-\`\`\`
-
-### Language Distribution
-
-| Language    | Percentage | Functions Modified |
-|------------|------------|-------------------|
-| TypeScript | 62.8%      | 18               |
-| SCSS       | 15.4%      | N/A              |
-| SVG        | 8.7%       | N/A              |
-| JSON       | 7.2%       | N/A              |
-| Markdown   | 5.9%       | N/A              |
+```
 
 ## 🚀 Getting Started
 
@@ -196,11 +212,24 @@ The extension now tracks:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to:
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) guide for details on:
 
-- Submit bug reports
-- Propose new features
-- Create pull requests
+- Development setup and workflow
+- Code style guidelines
+- Pull request process
+- Testing requirements
+- Available scripts and commands
+- Extension configuration
+- Community guidelines
+
+Before contributing:
+1. Fork and clone the repository
+2. Install dependencies: `npm install`
+3. Create a feature branch
+4. Make your changes following our guidelines
+5. Submit a pull request
+
+For detailed instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📄 License
 

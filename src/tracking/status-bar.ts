@@ -4,17 +4,6 @@ import * as path from 'path';
 import { Config } from '../utils/config';
 import { getTotalActiveTime } from './activity';
 
-function formatTimestamp(date: Date): string {
-    return date.toLocaleString(undefined, {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-}
-
 export class StatusBarManager {
     private statusBarItem: vscode.StatusBarItem;
     private activationTime: Date;
@@ -76,7 +65,7 @@ export class StatusBarManager {
         this.update();
     }
 
-    public async update(isLoggedIn: boolean = false) {
+    public async update() {
         const now = new Date();
         const newDate = now.toLocaleDateString('en-CA');
 
@@ -99,9 +88,8 @@ export class StatusBarManager {
             timeText = `${remainingMinutes}m`;
         }
         
-        const loginStatus = isLoggedIn ? '$(check)' : '$(x)';
-        this.statusBarItem.text = `${loginStatus} Code Tracking: ${timeText}`;
-        this.statusBarItem.tooltip = `Total active coding time today\n${isLoggedIn ? 'Connected to GitHub' : 'Not connected to GitHub'}`;
+        this.statusBarItem.text = `Code Tracking: ${timeText}`;
+        this.statusBarItem.tooltip = `Total active coding time today`;
     }
 
     public dispose() {
