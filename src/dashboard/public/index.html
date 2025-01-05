@@ -1,50 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Activity Dashboard</title>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
 </head>
 <body>
     <div class="dashboard">
-        <header class="header">
-            <h1>Code Activity Dashboard</h1>
-            <div class="time-filter">
-                <select id="timeRange">
-                    <option value="day">Last 24 Hours</option>
-                    <option value="week">Last Week</option>
-                    <option value="month">Last Month</option>
-                </select>
+        <header>
+            <div style="display: flex; align-items: center;">
+                <h1>Code Activity Dashboard</h1>
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-sun"></i>
+                </button>
+            </div>
+            <div class="time-range-selector">
+                <button data-range="day" class="active">Last 24 Hours</button>
+                <button data-range="week">Last 7 Days</button>
+                <button data-range="month">Last 30 Days</button>
             </div>
         </header>
 
-        <main class="main-content">
-            <section class="activity-grid">
-                <div class="card" id="commitActivity">
-                    <h2>Commit Activity</h2>
-                    <div class="chart-container">
-                        <!-- Chart will be inserted here by JavaScript -->
-                    </div>
-                </div>
+        <div class="summary-cards">
+            <div class="card">
+                <h3>Total Time</h3>
+                <div id="totalTime">0h 0m</div>
+                <div class="trend" id="timeTrend">↑ vs Previous Period</div>
+            </div>
+            <div class="card">
+                <h3>Daily Average</h3>
+                <div id="dailyAverage">0h 0m</div>
+                <div class="trend" id="averageTrend">↑ vs Previous Period</div>
+            </div>
+            <div class="card">
+                <h3>Projects</h3>
+                <div id="totalProjects">0</div>
+            </div>
+            <div class="card">
+                <h3>Languages</h3>
+                <div id="totalLanguages">0</div>
+            </div>
+        </div>
 
-                <div class="card" id="languageStats">
-                    <h2>Language Distribution</h2>
-                    <div class="chart-container">
-                        <!-- Chart will be inserted here by JavaScript -->
-                    </div>
-                </div>
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h2>Coding Activity</h2>
+                <canvas id="dailyChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2>Projects Distribution</h2>
+                <canvas id="projectsPie"></canvas>
+            </div>
 
-                <div class="card" id="timeStats">
-                    <h2>Time Statistics</h2>
-                    <div class="stats-container">
-                        <!-- Stats will be inserted here by JavaScript -->
-                    </div>
-                </div>
-            </section>
-        </main>
+            <div class="chart-container">
+                <h2>Languages Distribution</h2>
+                <canvas id="languagesPie"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h2>Hourly Activity Heatmap</h2>
+                <canvas id="hourlyHeatmap"></canvas>
+            </div>
+        </div>
+
+        <div class="details-section">
+            <div class="projects-details">
+                <h2>Projects</h2>
+                <div id="projectsList" class="details-list"></div>
+            </div>
+
+            <div class="languages-details">
+                <h2>Languages</h2>
+                <div id="languagesList" class="details-list"></div>
+            </div>
+        </div>
     </div>
 
     <script src="js/dashboard.js"></script>
 </body>
-</html> 
+</html>

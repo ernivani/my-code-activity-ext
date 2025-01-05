@@ -39,11 +39,11 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.appendLine("Attempting GitHub sign in...");
       if (await signInToGitHub()) {
         outputChannel.appendLine("Successfully signed in to GitHub");
-        statusBar.update(true);
+        statusBar.update();
         await setupCodeTracking(context);
       } else {
         outputChannel.appendLine("Failed to sign in to GitHub");
-        statusBar.update(false);
+        statusBar.update();
       }
     },
   );
@@ -78,6 +78,19 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(forcePushCommand);
 
+  const openDashboard = vscode.commands.registerCommand('codeTracker.openDashboard', async () => {
+    try {
+      if (!dashboardServer) {
+        dashboardServer = new DashboardServer();
+        await dashboardServer.start();
+      }
+      vscode.env.openExternal(vscode.Uri.parse('http://localhost:3000'));
+    } catch (error: unknown) {
+      vscode.window.showErrorMessage('Failed to open dashboard: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  });
+
+  context.subscriptions.push(openDashboard);
   // First check for stored token
   outputChannel.appendLine("Checking for stored GitHub token...");
   const storedToken = await Config.getGithubToken();
@@ -89,10 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
         outputChannel.appendLine(
           `Valid token found for user: ${userInfo.login}`,
         );
-        vscode.window.showInformationMessage(
-          `Auto-signed in as ${userInfo.login}`,
-        );
-        statusBar.update(true);
+        statusBar.update();
         await setupCodeTracking(context);
         return;
       }
@@ -110,19 +120,16 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine(
       `Found existing session for user: ${session.account.label}`,
     );
-    vscode.window.showInformationMessage(
-      `Auto-signed in as ${session.account.label}`,
-    );
-    statusBar.update(true);
+    statusBar.update();
     await setupCodeTracking(context);
   } else {
     outputChannel.appendLine(
       "No existing GitHub session found. Attempting automatic sign-in...",
     );
-    statusBar.update(false);
+    statusBar.update();
     if (await signInToGitHub()) {
       outputChannel.appendLine("Successfully signed in to GitHub");
-      statusBar.update(true);
+      statusBar.update();
       await setupCodeTracking(context);
     } else {
       vscode.window
@@ -137,20 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
         });
     }
   }
-
-  let openDashboard = vscode.commands.registerCommand('codeTracker.openDashboard', async () => {
-    try {
-      if (!dashboardServer) {
-        dashboardServer = new DashboardServer();
-        await dashboardServer.start();
-      }
-      vscode.env.openExternal(vscode.Uri.parse('http://localhost:3000'));
-    } catch (error: any) {
-      vscode.window.showErrorMessage('Failed to open dashboard: ' + error.message);
-    }
-  });
-
-  context.subscriptions.push(openDashboard);
+  
 }
 
 export async function deactivate() {

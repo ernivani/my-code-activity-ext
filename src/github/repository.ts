@@ -116,7 +116,12 @@ Last Updated: ${new Date().toISOString()}
 
 export async function ensureLocalRepo(localPath: string, remoteUrl: string, token: string) {
     try {
-        if (!fs.existsSync(localPath)) {
+        // First check if it's already a git repository
+        const isGitRepo = await fs.promises.access(path.join(localPath, '.git'))
+            .then(() => true)
+            .catch(() => false);
+
+        if (!isGitRepo) {
             console.log('Creating local repository...');
             await fs.promises.mkdir(localPath, { recursive: true });
             await exec(`git init ${localPath}`);
@@ -131,11 +136,22 @@ export async function ensureLocalRepo(localPath: string, remoteUrl: string, toke
         const branchName = Config.getBranchName();
         
         try {
-            // Check if branch exists locally
-            await exec(`git -C ${localPath} rev-parse --verify ${branchName}`);
-        } catch {
-            // Branch doesn't exist, create it
-            console.log(`Creating new branch: ${branchName}`);
+            // Try to get current branch
+            const { stdout: currentBranch } = await exec(`git -C ${localPath} rev-parse --abbrev-ref HEAD`);
+            
+            if (currentBranch.trim() !== branchName) {
+                try {
+                    // Try to checkout existing branch
+                    await exec(`git -C ${localPath} checkout ${branchName}`);
+                } catch {
+                    // Branch doesn't exist, create it
+                    console.log(`Creating new branch: ${branchName}`);
+                    await exec(`git -C ${localPath} checkout -b ${branchName}`);
+                }
+            }
+        } catch (error) {
+            // If rev-parse fails, we're probably in a new repo with no commits
+            console.log(`Creating initial branch: ${branchName}`);
             await exec(`git -C ${localPath} checkout -b ${branchName}`);
         }
 

@@ -77,13 +77,14 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && npm run copy-dashboard",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "test": "jest",
     "lint": "eslint src --ext ts",
     "clean": "rm -rf out",
-    "pretty": "prettier --write ."
+    "pretty": "prettier --write .",
+    "copy-dashboard": "mkdir -p out/dashboard/public && cp -r src/dashboard/public/* out/dashboard/public/"
   },
   "devDependencies": {
     "@types/express": "^4.17.17",
