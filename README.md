@@ -104,7 +104,7 @@ Here's an example of the enhanced activity summary that gets generated:
 
 ### By File Type (Lines Changed)
 
-\`\`\`mermaid
+```mermaid
 pie showData
 title Lines changed by file type
 ".tsx" : 1090
@@ -113,30 +113,20 @@ title Lines changed by file type
 ".svg" : 254
 ".md" : 323
 ".json" : 343
-\`\`\`
+```
 
 ### By Hour (Activity Heatmap)
 
-\`\`\`mermaid
+```mermaid
 pie showData
-title Coding activity by hour
+title Coding activity by hour (count of changes)
 "09h" : 450
 "10h" : 785
 "11h" : 923
 "13h" : 654
 "14h" : 589
 "15h" : 446
-\`\`\`
-
-### Language Distribution
-
-| Language    | Percentage | Functions Modified |
-|------------|------------|-------------------|
-| TypeScript | 62.8%      | 18               |
-| SCSS       | 15.4%      | N/A              |
-| SVG        | 8.7%       | N/A              |
-| JSON       | 7.2%       | N/A              |
-| Markdown   | 5.9%       | N/A              |
+```
 
 ## 🚀 Getting Started
 
