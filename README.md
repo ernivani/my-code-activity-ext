@@ -9,22 +9,21 @@ Track your coding activity automatically and build a comprehensive history of yo
 ## ✨ Key Features
 
 - **🔄 Enhanced Activity Tracking**
-
   - Smart change detection and consolidation
   - Function-level modification tracking
   - Intelligent duplicate filtering
   - Language-aware code analysis
   - Automatic commit generation
 
-
-  - Project-level statistics
-  - Language usage metrics
-  - Function change tracking
-  - Time-based analytics
+- **📊 Interactive Dashboard**
+  - Real-time activity visualization
+  - Daily/Weekly/Monthly views
+  - Project distribution charts
+  - Language usage breakdown
   - Activity heatmaps
+  - Dark/Light theme support
 
 - **🤖 AI-Powered Insights**
-
   - Generate meaningful commit messages using AI
   - Local LLM support via Ollama for privacy
   - Context-aware messages based on code changes
@@ -32,7 +31,6 @@ Track your coding activity automatically and build a comprehensive history of yo
   - Smart change consolidation
 
 - **🔐 Secure & Private**
-
   - Secure GitHub authentication
   - Support for custom Git repositories
   - Support for GitHub Enterprise
@@ -45,6 +43,35 @@ Track your coding activity automatically and build a comprehensive history of yo
   - Real-time statistics
   - Customizable settings
   - Minimal setup needed
+
+## 🚀 Visual Analytics Dashboard
+
+The extension now includes a powerful web-based dashboard for visualizing your coding activity:
+
+### 📊 Interactive Analytics
+- Real-time activity tracking with daily/weekly/monthly views
+- Project distribution visualization with doughnut charts
+- Language usage breakdown with time percentages
+- Hourly activity heatmap showing peak coding times
+
+### 🌈 Dashboard Features
+- Modern, GitHub-inspired interface
+- Dark/Light theme support matching VS Code preferences
+- Responsive design for all screen sizes
+- Real-time data updates
+- Export capabilities (coming soon)
+
+### 📈 Available Charts
+- Activity timeline with trend analysis
+- Project distribution pie charts
+- Language usage breakdown
+- Hourly activity heatmap
+- Detailed statistics cards
+
+To access the dashboard:
+1. Open VS Code Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+2. Search for "Code Activity: Open Dashboard"
+3. The dashboard will open in your default browser
 
 ## 🚀 Example Usage
 
