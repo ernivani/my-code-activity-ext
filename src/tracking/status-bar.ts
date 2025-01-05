@@ -15,6 +15,8 @@ export class StatusBarManager {
         this.currentDate = new Date().toLocaleDateString('en-CA');
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.statusBarItem.text = "";
+        this.statusBarItem.command = 'codeTracker.openDashboard';
+        this.statusBarItem.tooltip = 'Click to open Code Tracking dashboard';
         this.statusBarItem.show();
 
         // Set up the path for storing activation time
@@ -89,7 +91,6 @@ export class StatusBarManager {
         }
         
         this.statusBarItem.text = `Code Tracking: ${timeText}`;
-        this.statusBarItem.tooltip = `Total active coding time today`;
     }
 
     public dispose() {
