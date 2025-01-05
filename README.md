@@ -3,6 +3,7 @@
 [![Version](https://img.shields.io/visual-studio-marketplace/v/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
 [![Downloads](https://img.shields.io/visual-studio-marketplace/d/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
 [![Rating](https://img.shields.io/visual-studio-marketplace/r/ernicani.my-code-activity-ext)](https://marketplace.visualstudio.com/items?itemName=ernicani.my-code-activity-ext)
+[![ViewCount](https://views.whatilearened.today/views/github/ernivani/my-code-activity-ext.svg)](https://views.whatilearened.today/views/github/ernivani/my-code-activity-ext.svg)
 
 Track your coding activity automatically and build a comprehensive history of your development journey. This VS Code extension seamlessly records your coding sessions and commits them to a GitHub repository, helping you maintain a detailed log of your programming activities.
 
@@ -16,7 +17,6 @@ Track your coding activity automatically and build a comprehensive history of yo
   - Language-aware code analysis
   - Automatic commit generation
 
-- **📊 Comprehensive Analytics**
 
   - Project-level statistics
   - Language usage metrics
@@ -196,11 +196,24 @@ The extension now tracks:
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to:
+We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) guide for details on:
 
-- Submit bug reports
-- Propose new features
-- Create pull requests
+- Development setup and workflow
+- Code style guidelines
+- Pull request process
+- Testing requirements
+- Available scripts and commands
+- Extension configuration
+- Community guidelines
+
+Before contributing:
+1. Fork and clone the repository
+2. Install dependencies: `npm install`
+3. Create a feature branch
+4. Make your changes following our guidelines
+5. Submit a pull request
+
+For detailed instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📄 License
 
