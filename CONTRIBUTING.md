@@ -1,78 +1,150 @@
-# Contributing to VS Code Activity Extension
+# Contributing to My Code Activity Extension
 
-First off, thank you for considering contributing to the VS Code Activity Extension! It's people like you that make this extension better for everyone.
+Thank you for your interest in contributing to My Code Activity Extension! This document provides guidelines and steps for contributing to the project.
 
-## How Can I Contribute?
+## Development Setup
 
-### Reporting Bugs
+1. **Prerequisites**
+   - Node.js (latest LTS version)
+   - VS Code (v1.75.0 or higher)
+   - Git
+   - Ollama (optional, for AI features)
 
-Before creating bug reports, please check the issue list as you might find out that you don't need to create one. When you are creating a bug report, please include as many details as possible:
+2. **Local Development**
+   ```bash
+   # Clone the repository
+   git clone https://github.com/ernivani/my-code-activity-ext.git
+   cd my-code-activity-ext
 
-* Use a clear and descriptive title
-* Describe the exact steps which reproduce the problem
-* Provide specific examples to demonstrate the steps
-* Describe the behavior you observed after following the steps
-* Explain which behavior you expected to see instead and why
-* Include details about your configuration and environment
+   # Install dependencies
+   npm install
 
-### Suggesting Enhancements
+   # Start the compilation in watch mode
+   npm run watch
 
-Enhancement suggestions are tracked as GitHub issues. When creating an enhancement suggestion, please include:
+   # Or for a one-time build
+   npm run compile
+   ```
 
-* A clear and descriptive title
-* A detailed description of the proposed functionality
-* Explain why this enhancement would be useful
-* List some other applications where this enhancement exists, if applicable
+3. **Available Scripts**
+   ```bash
+   # Run tests
+   npm run test
 
-### Pull Requests
+   # Lint the code
+   npm run lint
 
-* Fill in the required template
-* Do not include issue numbers in the PR title
-* Follow the TypeScript styleguide
-* Include screenshots and animated GIFs in your pull request whenever possible
-* Document new code
-* End all files with a newline
+   # Format code with Prettier
+   npm run pretty
 
-## Development Process
+   # Clean build output
+   npm run clean
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+   # Prepare for VS Code publishing
+   npm run vscode:prepublish
+   # or
+   vsce package
 
-### Setup Development Environment
+   # Install the extension in VS Code
+   code --install-extension my-code-activity-ext-*.vsix | sort -V | tail -n 1
+   ```
 
-```bash
-# Clone your fork
-git clone https://github.com/your-username/my-code-activity-ext.git
+## Development Workflow
 
-# Install dependencies
-npm install
+1. **Create a new branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-# Build the extension
-npm run build
+2. **Commit Guidelines**
+   - Use conventional commits format:
+     - `feat:` for new features
+     - `fix:` for bug fixes
+     - `docs:` for documentation changes
+     - `test:` for test changes
+     - `refactor:` for code refactoring
+     - `style:` for code style changes
+     - `chore:` for other changes
 
-# Run tests
-npm test
-```
+3. **Code Style**
+   - Follow TypeScript best practices
+   - Use ESLint and Prettier for code formatting
+   - Maintain existing code style
+   - Add comments for complex logic
+   - Update tests when modifying features
 
-## Styleguides
+## Extension Development
 
-### Git Commit Messages
+1. **Configuration Settings**
+   The extension supports the following settings:
+   - `codeTracker.commitInterval`: Interval in minutes between activity commits (default: 5)
+   - `codeTracker.customRemoteUrl`: Custom Git remote URL
+   - `codeTracker.branchName`: Git branch name for tracking data (default: "main")
+   - `codeTracker.enableAiCommits`: Enable AI-generated commit messages
+   - `codeTracker.ollamaUrl`: Ollama server URL (default: "http://localhost:11434")
+   - `codeTracker.ollamaModel`: Ollama model for commit messages (default: "codellama")
 
-* Use the present tense ("Add feature" not "Added feature")
-* Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
-* Limit the first line to 72 characters or less
-* Reference issues and pull requests liberally after the first line
+2. **Commands**
+   The extension provides these commands:
+   - `codeTracker.signInWithGitHub`: Sign in with GitHub
+   - `codeTracker.toggleTracking`: Toggle code tracking
+   - `codeTracker.forcePush`: Force push code tracking data
 
-### TypeScript Styleguide
+## Testing
 
-* Use 2 spaces for indentation
-* Prefer `const` over `let`
-* Use meaningful variable names
-* Document complex code sections
+- Write unit tests using Jest
+- Run tests with `npm test`
+- Tests are automatically run before publishing
+- Update test files in `src/__tests__` directory
+
+## Pull Request Process
+
+1. **Before Submitting**
+   - Ensure all tests pass (`npm test`)
+   - Run linting (`npm run lint`)
+   - Format code (`npm run pretty`)
+   - Update documentation if needed
+   - Add tests for new features
+
+2. **PR Description**
+   - Clearly describe the changes
+   - Reference related issues
+   - List any breaking changes
+   - Include screenshots for UI changes
+
+3. **Review Process**
+   - PRs require at least one review
+   - Address review comments
+   - Keep PR scope focused
+
+## Feature Requests and Bug Reports
+
+- Use the GitHub issue templates
+- Provide clear reproduction steps for bugs
+- Include VS Code and extension versions
+- Attach relevant logs or screenshots
+
+## Documentation
+
+- Update README.md for new features
+- Add JSDoc comments for new functions
+- Update configuration documentation
+- Include examples where appropriate
+
+## Community
+
+- Be respectful and inclusive
+- Follow the Code of Conduct
+- Help others in discussions
+- Share knowledge and improvements
+
+## Questions?
+
+Feel free to:
+- Open an issue for questions
+- Join discussions
+- Reach out to maintainers
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under its MIT License. 
+By contributing, you agree that your contributions will be licensed under the project's MIT License.
