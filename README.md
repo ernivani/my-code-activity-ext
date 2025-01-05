@@ -46,7 +46,10 @@ Track your coding activity automatically and build a comprehensive history of yo
 
 ## 🚀 Visual Analytics Dashboard
 
-The extension now includes a powerful web-based dashboard for visualizing your coding activity:
+The extension now includes a powerful web-based dashboard for visualizing your coding activity. Access it by:
+1. Clicking the "Code Tracking" status bar item in VS Code
+2. Using the Command Palette (Ctrl+Shift+P / Cmd+Shift+P) and searching for "Code Activity: Open Dashboard"
+3. The dashboard will open in your default browser at `http://localhost:3000`
 
 ### 📊 Interactive Analytics
 - Real-time activity tracking with daily/weekly/monthly views
@@ -68,10 +71,23 @@ The extension now includes a powerful web-based dashboard for visualizing your c
 - Hourly activity heatmap
 - Detailed statistics cards
 
-To access the dashboard:
-1. Open VS Code Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
-2. Search for "Code Activity: Open Dashboard"
-3. The dashboard will open in your default browser
+## 🔐 Authentication Options
+
+The extension now supports two authentication methods:
+
+### 1. GitHub Authentication
+1. Open the Command Palette
+2. Run "Code Activity: Sign in with GitHub"
+3. Follow the browser authentication flow
+4. Your activity will be tracked to a private GitHub repository
+
+### 2. Custom Token & Repository
+1. Set up your custom Git repository
+2. Open VS Code settings
+3. Configure `codeTracker.customRemoteUrl` with your repository URL
+4. Run "Code Activity: Set Custom Token" from the Command Palette
+5. Enter your Git access token
+6. The extension will use your custom repository for tracking
 
 ## 🚀 Example Usage
 
@@ -144,8 +160,8 @@ Access settings through VS Code's settings (Ctrl+,):
     // Minutes between activity commits
     "codeTracker.commitInterval": 5,
     
-    // Custom Git remote URL (optional)
-    "codeTracker.customRemoteUrl": "",
+    // Custom Git repository URL (for non-GitHub tracking)
+    "codeTracker.customRemoteUrl": "https://your-git-server.com/user/repo.git",
     
     // Git branch name for tracking data
     "codeTracker.branchName": "main",
