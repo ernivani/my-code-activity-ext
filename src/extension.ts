@@ -23,7 +23,7 @@ let REMOTE_REPO_HTTPS_URL: string | undefined;
 
 let outputChannel: vscode.OutputChannel;
 
-const dashboardServer: DashboardServer | null = null;
+let dashboardServer: DashboardServer | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Code Tracking");
@@ -102,6 +102,20 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(forcePushCommand);
+
+  const openDashboard = vscode.commands.registerCommand('codeTracker.openDashboard', async () => {
+    try {
+      if (!dashboardServer) {
+        dashboardServer = new DashboardServer();
+        await dashboardServer.start();
+      }
+      vscode.env.openExternal(vscode.Uri.parse('http://localhost:3000'));
+    } catch (error: unknown) {
+      vscode.window.showErrorMessage('Failed to open dashboard: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  });
+
+  context.subscriptions.push(openDashboard);
 
   // First check for stored token
   outputChannel.appendLine("Checking for stored GitHub token...");
