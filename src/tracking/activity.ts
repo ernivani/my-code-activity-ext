@@ -55,19 +55,70 @@ let trackedChanges: FileChange[] = [];
 let lastActivityTime: Date | null = null;
 let activeTimeInMinutes = 0;
 
-async function readExistingStats(): Promise<DailyStats | null> {
+async function readExistingStats(date?: string): Promise<DailyStats | null> {
   try {
-    const today = new Date().toLocaleDateString('en-CA');
+    const targetDate = date || new Date().toLocaleDateString('en-CA');
     const activityJsonPath = path.join(
       Config.TRACKING_REPO_PATH,
-      today,
-      "activity.json",
+      targetDate,
+      "activity.json"
     );
+    
+    // Check if file exists first
+    if (!fs.existsSync(activityJsonPath)) {
+      console.log(`No activity.json found at: ${activityJsonPath}`);
+      return null;
+    }
+
     const fileData = await fs.promises.readFile(activityJsonPath, "utf-8");
-    return JSON.parse(fileData);
+    const stats = JSON.parse(fileData);
+    
+    // Validate the stats object has required fields
+    if (!stats.date || !stats.projects) {
+      console.warn(`Invalid stats format in ${activityJsonPath}`);
+      return null;
+    }
+    
+    return stats;
   } catch (error) {
+    console.error(`Error reading stats for date ${date}:`, error);
     return null;
   }
+}
+
+export async function readStatsInRange(startDate: Date, endDate: Date): Promise<DailyStats[]> {
+  const stats: DailyStats[] = [];
+  
+  // Ensure we're working with clean date objects (no time component)
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  
+  // Validate date range
+  if (start > end) {
+    console.warn('Invalid date range: startDate is after endDate');
+    return [];
+  }
+  
+  const current = new Date(start);
+  while (current <= end) {
+    const date = current.toLocaleDateString('en-CA');
+    console.log(`Checking stats for date: ${date}`); // Debug log
+    const dailyStats = await readExistingStats(date);
+    if (dailyStats) {
+      // Don't validate the date from stats - trust the folder structure
+      stats.push(dailyStats);
+    } else {
+      console.log(`No stats found for date: ${date}`); // Debug log
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  // Sort stats by date to ensure consistent ordering
+  return stats.sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateA.getTime() - dateB.getTime();
+  });
 }
 
 export async function getTotalActiveTime(): Promise<number> {
@@ -96,7 +147,6 @@ export async function trackChanges(fileName: string) {
     if (fileName.toLowerCase().includes('readme') || fileName.toLowerCase().endsWith('.md')) {
       const { linesAdded, linesRemoved } = await getGitDiffStats(fileName);
       if (linesAdded === 0 && linesRemoved === 0) {
-        console.log("Skipping README/markdown file with no changes:", fileName);
         return;
       }
     }
@@ -105,6 +155,15 @@ export async function trackChanges(fileName: string) {
     const projectName = vscode.workspace.name || path.basename(path.dirname(fileName));
     const now = new Date();
 
+    // Calculate duration since last activity
+    let duration = 0;
+    if (lastActivityTime) {
+      const timeDiff = now.getTime() - lastActivityTime.getTime();
+      if (timeDiff <= 5 * 60 * 1000) { // 5 minutes in milliseconds
+        duration = Math.min(5, Math.ceil(timeDiff / (60 * 1000))); // Duration in minutes, capped at 5
+      }
+    }
+
     // Add more detailed error handling for git diff
     try {
       const { stdout: diffContent } = await execAsync(`git diff ${fileName}`);
@@ -112,7 +171,6 @@ export async function trackChanges(fileName: string) {
       
       // Skip if no actual changes
       if (contentChanges.added.length === 0 && contentChanges.removed.length === 0) {
-        console.log("No content changes detected for file:", fileName);
         return;
       }
 
@@ -123,18 +181,14 @@ export async function trackChanges(fileName: string) {
         linesAdded: contentChanges.added.length,
         linesRemoved: contentChanges.removed.length,
         projectName,
-        content: contentChanges
+        content: contentChanges,
+        duration: duration // Set the duration
       };
 
       // Only add if there are actual changes
       if (change.linesAdded > 0 || change.linesRemoved > 0) {
         trackedChanges.push(change);
         updateActiveTime(now);
-        console.log(
-          "Successfully tracked changes for:",
-          fileName,
-          `(+${change.linesAdded}, -${change.linesRemoved})`
-        );
       }
     } catch (gitError) {
       console.error("Git diff failed:", gitError);
@@ -150,15 +204,11 @@ export async function trackChanges(fileName: string) {
           linesAdded,
           linesRemoved,
           projectName,
-          content: { added: [], removed: [] }
+          content: { added: [], removed: [] },
+          duration: duration // Set the duration
         };
         trackedChanges.push(change);
         updateActiveTime(now);
-        console.log(
-          "Tracked changes using fallback method:",
-          fileName,
-          `(+${linesAdded}, -${linesRemoved})`
-        );
       }
     }
   } catch (error) {
@@ -236,9 +286,10 @@ function updateActiveTime(now: Date) {
     return;
   }
   const timeDiff = now.getTime() - lastActivityTime.getTime();
-  // Incrémenter si l'inactivité est <= 5 minutes
+  // Only increment if inactivity is <= 5 minutes
   if (timeDiff <= 5 * 60 * 1000) {
-    activeTimeInMinutes += Math.ceil(timeDiff / (60 * 1000));
+    const duration = Math.min(5, Math.ceil(timeDiff / (60 * 1000))); // Duration in minutes, capped at 5
+    activeTimeInMinutes += duration;
   }
   lastActivityTime = now;
 }
@@ -251,7 +302,6 @@ export async function ensureDailyDirectory(
 
   try {
     await fs.promises.mkdir(dayFolderPath, { recursive: true });
-    console.log(`Daily directory created/verified: ${dayFolderPath}`);
   } catch (error) {
     vscode.window.showErrorMessage(
       `Failed to create daily directory: ${error instanceof Error ? error.message : String(error)}`,
@@ -267,7 +317,6 @@ export async function createActivityLog(
   trackingRepoPath: string,
 ): Promise<void> {
   if (trackedChanges.length === 0 && activeTimeInMinutes === 0) {
-    console.log("No new activity to log");
     return;
   }
 
@@ -289,7 +338,6 @@ export async function createActivityLog(
       : newStats;
 
     if (isEmptyStats(mergedStats)) {
-      console.log("No cumulative changes found, skipping write.");
       return;
     }
 
@@ -337,116 +385,91 @@ async function aggregateStats(): Promise<DailyStats> {
   };
 
   // First, consolidate changes by file and timestamp window
-  const consolidatedChanges = new Map<string, FileChange[]>();
   const hourlyActivity = new Map<number, number>();
   const languageUsage = new Map<string, number>();
   
+  // Group changes by project and calculate time windows
+  const projectChanges = new Map<string, { changes: FileChange[], totalTime: number }>();
+  
   for (const change of trackedChanges) {
-    if (change.linesAdded === 0 && change.linesRemoved === 0) {
+    if (!projectChanges.has(change.projectName)) {
+      projectChanges.set(change.projectName, { changes: [], totalTime: 0 });
+    }
+    const projectData = projectChanges.get(change.projectName);
+    if (!projectData) {
       continue;
     }
-
-    // Track hourly activity
-    const hour = new Date(change.timestamp).getHours();
-    hourlyActivity.set(hour, (hourlyActivity.get(hour) || 0) + 1);
-
-    // Track language usage
+    
+    // Calculate duration for this change
+    const changeTime = change.duration || 0; // Use the actual duration from the commit
+    projectData.totalTime += changeTime;
+    
+    // Track language time
     const language = change.fileType.replace('.', '') || 'unknown';
-    languageUsage.set(language, (languageUsage.get(language) || 0) + change.linesAdded + change.linesRemoved);
-
-    const key = change.fileName;
-    if (!consolidatedChanges.has(key)) {
-      consolidatedChanges.set(key, []);
-    }
+    change.language = language;
     
-    const fileChanges = consolidatedChanges.get(key)!;
-    const lastChange = fileChanges[fileChanges.length - 1];
-    
-    if (lastChange && 
-        Math.abs(new Date(change.timestamp).getTime() - new Date(lastChange.timestamp).getTime()) <= 5000) {
-      lastChange.linesAdded += change.linesAdded;
-      lastChange.linesRemoved += change.linesRemoved;
-      if (change.content && lastChange.content) {
-        lastChange.content.added.push(...change.content.added);
-        lastChange.content.removed.push(...change.content.removed);
-      }
-      // Update duration if available
-      if (lastChange.duration && change.duration) {
-        lastChange.duration += change.duration;
-      }
-    } else {
-      // Enhance the change object with additional data
-      const enhancedChange = {
-        ...change,
-        language: change.fileType.replace('.', '') || 'unknown',
-        changeType: getChangeType(change),
-        functionChanges: await extractFunctionChanges(change)
-      };
-      fileChanges.push(enhancedChange);
-    }
+    projectData.changes.push(change);
   }
 
-  // Build stats with enhanced analytics
-  for (const [_, changes] of consolidatedChanges) {
-    for (const change of changes) {
-      if (!stats.projects[change.projectName]) {
-        stats.projects[change.projectName] = {
-          totalLinesAdded: 0,
-          totalLinesRemoved: 0,
-          totalActiveTime: 0,
-          files: {},
-          languageStats: {},
-          changeFrequency: {},
-          topFiles: [],
-          averageChangeSize: 0
-        };
-      }
+  // Process changes for metrics
+  for (const [projectName, data] of projectChanges) {
+    if (!stats.projects[projectName]) {
+      stats.projects[projectName] = {
+        totalLinesAdded: 0,
+        totalLinesRemoved: 0,
+        totalActiveTime: data.totalTime,
+        files: {},
+        languageStats: {},
+        changeFrequency: {},
+        topFiles: [],
+        averageChangeSize: 0
+      };
+    }
 
-      const project = stats.projects[change.projectName];
+    const project = stats.projects[projectName];
+    
+    for (const change of data.changes) {
       project.totalLinesAdded += change.linesAdded;
       project.totalLinesRemoved += change.linesRemoved;
 
-      // Update language stats
+      // Update language stats with duration
       const language = change.language || 'unknown';
-      project.languageStats[language] = (project.languageStats[language] || 0) + change.linesAdded + change.linesRemoved;
+      project.languageStats[language] = (project.languageStats[language] || 0) + change.duration!;
 
       // Update change frequency
       const hour = new Date(change.timestamp).getHours();
-      project.changeFrequency[hour] = (project.changeFrequency[hour] || 0) + 1;
+      project.changeFrequency[hour] = (project.changeFrequency[hour] || 0) + change.duration!;
 
       if (!project.files[change.fileName]) {
         project.files[change.fileName] = [];
       }
       project.files[change.fileName].push(change);
+
+      // Track hourly activity
+      hourlyActivity.set(hour, (hourlyActivity.get(hour) || 0) + change.duration!);
+
+      // Track language usage with duration
+      languageUsage.set(language, (languageUsage.get(language) || 0) + change.duration!);
     }
+
+    // Calculate average change size
+    const totalChanges = Object.values(project.files).flat().length;
+    project.averageChangeSize = totalChanges > 0 
+      ? (project.totalLinesAdded + project.totalLinesRemoved) / totalChanges 
+      : 0;
+
+    // Update top files
+    project.topFiles = Object.entries(project.files)
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, 5)
+      .map(([file]) => file);
   }
 
   // Calculate summary statistics
-  stats.totalProjects = Object.keys(stats.projects).length;
-  stats.totalFiles = Array.from(consolidatedChanges.keys()).length;
+  stats.totalProjects = projectChanges.size;
+  stats.totalFiles = Array.from(new Set(trackedChanges.map(c => c.fileName))).length;
   stats.mostActiveHours = getMostActiveHours(hourlyActivity);
   stats.mostUsedLanguages = getMostUsedLanguages(languageUsage);
-
-  // Distribute active time
-  if (stats.totalProjects > 0) {
-    const timePerProject = Math.floor(activeTimeInMinutes / stats.totalProjects);
-    for (const name of Object.keys(stats.projects)) {
-      stats.projects[name].totalActiveTime = timePerProject;
-      
-      // Calculate average change size
-      const project = stats.projects[name];
-      const totalChanges = Object.values(project.files).flat().length;
-      project.averageChangeSize = totalChanges > 0 
-        ? (project.totalLinesAdded + project.totalLinesRemoved) / totalChanges 
-        : 0;
-      
-      // Update top files
-      project.topFiles = Object.entries(project.files)
-        .sort((a, b) => b[1].length - a[1].length)
-        .slice(0, 5)
-        .map(([file]) => file);
-    }
-  }
 
   return stats;
 }
@@ -732,3 +755,6 @@ export async function createSummary(): Promise<string> {
     `Active coding time: ${activeTimeInMinutes} minute${activeTimeInMinutes > 1 ? "s" : ""}.`
   );
 }
+
+// Export the interface and function
+export { DailyStats, readExistingStats };
