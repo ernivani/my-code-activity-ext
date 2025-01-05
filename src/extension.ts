@@ -23,7 +23,7 @@ let REMOTE_REPO_HTTPS_URL: string | undefined;
 
 let outputChannel: vscode.OutputChannel;
 
-let dashboardServer: DashboardServer | null = null;
+const dashboardServer: DashboardServer | null = null;
 
 export async function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Code Tracking");
@@ -62,7 +62,7 @@ export async function activate(context: vscode.ExtensionContext) {
         try {
           await Config.saveToken(token, true);
           outputChannel.appendLine("Custom token saved successfully");
-          statusBar.update(true);
+          statusBar.update();
           await setupCodeTracking(context);
           vscode.window.showInformationMessage("Custom token set successfully");
         } catch (error) {
@@ -117,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(
           `Auto-signed in as ${userInfo.login}`,
         );
-        statusBar.update(true);
+        statusBar.update();
         await setupCodeTracking(context);
         return;
       }
@@ -141,10 +141,10 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine(
       "No existing GitHub session found. Please sign in or set a custom token.",
     );
-    statusBar.update(false);
+    statusBar.update();
     if (await signInToGitHub()) {
       outputChannel.appendLine("Successfully signed in to GitHub");
-      statusBar.update(true);
+      statusBar.update();
       await setupCodeTracking(context);
     } else {
       vscode.window
