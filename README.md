@@ -49,7 +49,7 @@ Track your coding activity automatically and build a comprehensive history of yo
 The extension now includes a powerful web-based dashboard for visualizing your coding activity. Access it by:
 1. Clicking the "Code Tracking" status bar item in VS Code
 2. Using the Command Palette (Ctrl+Shift+P / Cmd+Shift+P) and searching for "Code Activity: Open Dashboard"
-3. The dashboard will open in your default browser at `http://localhost:3000`
+3. The dashboard will open in your default browser at `http://localhost:5556`
 
 ### 📊 Interactive Analytics
 - Real-time activity tracking with daily/weekly/monthly views
@@ -250,6 +250,18 @@ For detailed instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📝 Changelog
+
+### v0.0.12
+- Fixed GitHub authentication issue that sometimes prevented code tracking setup
+- Added retry logic for authentication failures
+- Improved error handling and recovery mechanisms
+- Enhanced token validation and refresh process
+- Added more detailed logging for troubleshooting
+
+### v0.0.11
+- Initial public release
 
 ## 🔗 Links
 

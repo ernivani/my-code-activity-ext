@@ -18,6 +18,7 @@ import {
 import { StatusBarManager } from "./tracking/status-bar";
 import { Config } from "./utils/config";
 import { DashboardServer } from "./dashboard/server";
+import * as fs from "fs";
 
 let REMOTE_REPO_HTTPS_URL: string | undefined;
 
@@ -109,7 +110,7 @@ export async function activate(context: vscode.ExtensionContext) {
         dashboardServer = new DashboardServer();
         await dashboardServer.start();
       }
-      vscode.env.openExternal(vscode.Uri.parse('http://localhost:3000'));
+      vscode.env.openExternal(vscode.Uri.parse('http://localhost:5556'));
     } catch (error: unknown) {
       vscode.window.showErrorMessage('Failed to open dashboard: ' + (error instanceof Error ? error.message : String(error)));
     }
@@ -210,12 +211,50 @@ export async function deactivate() {
 async function setupCodeTracking(context: vscode.ExtensionContext) {
   outputChannel.appendLine("Setting up code tracking...");
   
+  // Track setup attempts to prevent infinite loops
+  const setupAttemptKey = 'codeTracker.setupAttempts';
+  const setupAttempts = context.globalState.get(setupAttemptKey, 0) as number;
+  
+  // Reset attempts if it's been more than 24 hours since the last attempt
+  const lastSetupTimestampKey = 'codeTracker.lastSetupTimestamp';
+  const lastSetupTimestamp = context.globalState.get(lastSetupTimestampKey, 0) as number;
+  const now = Date.now();
+  
+  if (now - lastSetupTimestamp > 24 * 60 * 60 * 1000) {
+    // Reset if more than 24 hours
+    await context.globalState.update(setupAttemptKey, 0);
+    await context.globalState.update(lastSetupTimestampKey, now);
+  } else if (setupAttempts >= 3) {
+    // If we've tried 3 times in the last 24 hours, wait before trying again
+    outputChannel.appendLine(`Setup has been attempted ${setupAttempts} times in the last 24 hours. Waiting before trying again.`);
+    vscode.window.showWarningMessage(
+      'Multiple setup attempts detected. Please try signing out and signing in again.',
+      'Sign Out and In'
+    ).then(selection => {
+      if (selection === 'Sign Out and In') {
+        vscode.commands.executeCommand('codeTracker.signInWithGitHub');
+      }
+    });
+    return;
+  }
+  
+  // Update attempt counter
+  await context.globalState.update(setupAttemptKey, setupAttempts + 1);
+  await context.globalState.update(lastSetupTimestampKey, now);
+  
   try {
     // Get token and check if it's a custom token
     const { token, isCustom } = await Config.getToken();
     if (!token) {
       outputChannel.appendLine("No token found");
-      vscode.window.showWarningMessage("Please set up a token first.");
+      vscode.window.showWarningMessage(
+        "Please set up a token first.",
+        "Sign in with GitHub"
+      ).then(selection => {
+        if (selection === "Sign in with GitHub") {
+          vscode.commands.executeCommand('codeTracker.signInWithGitHub');
+        }
+      });
       return;
     }
 
@@ -233,16 +272,42 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
     } else {
       // For GitHub tokens, get user info and ensure repo exists
       outputChannel.appendLine("Using GitHub token, fetching user info...");
-      const userInfo = await fetchUserInfo(token);
-      if (!userInfo.login) {
-        outputChannel.appendLine("Failed to get GitHub username");
-        vscode.window.showErrorMessage("Could not determine GitHub username.");
+      let userInfo;
+      try {
+        userInfo = await fetchUserInfo(token);
+        if (!userInfo.login) {
+          throw new Error("No login information returned");
+        }
+      } catch (error) {
+        outputChannel.appendLine(`Failed to get GitHub username: ${error}`);
+        vscode.window.showErrorMessage(
+          "Could not validate GitHub credentials. Would you like to try signing in again?",
+          "Sign in Again"
+        ).then(selection => {
+          if (selection === "Sign in Again") {
+            vscode.commands.executeCommand('codeTracker.signInWithGitHub');
+          }
+        });
         return;
       }
+      
       outputChannel.appendLine(`GitHub username: ${userInfo.login}`);
 
       outputChannel.appendLine("Ensuring code-tracking repository exists...");
-      remoteUrl = await ensureCodeTrackingRepo(token, userInfo.login);
+      try {
+        remoteUrl = await ensureCodeTrackingRepo(token, userInfo.login);
+      } catch (error) {
+        outputChannel.appendLine(`Failed to ensure code tracking repository: ${error}`);
+        vscode.window.showErrorMessage(
+          "Failed to set up code tracking repository. Would you like to try again?",
+          "Try Again"
+        ).then(selection => {
+          if (selection === "Try Again") {
+            setupCodeTracking(context);
+          }
+        });
+        return;
+      }
     }
 
     REMOTE_REPO_HTTPS_URL = remoteUrl;
@@ -251,16 +316,53 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
     outputChannel.appendLine(
       `Setting up local repository at ${Config.TRACKING_REPO_PATH}...`,
     );
-    await ensureLocalRepo(
-      Config.TRACKING_REPO_PATH,
-      remoteUrl,
-      token,
-    );
-    outputChannel.appendLine("Local repository is ready");
+    
+    try {
+      await ensureLocalRepo(
+        Config.TRACKING_REPO_PATH,
+        remoteUrl,
+        token,
+      );
+      outputChannel.appendLine("Local repository is ready");
+    } catch (error) {
+      outputChannel.appendLine(`Failed to set up local repository: ${error}`);
+      
+      // Check if the directory exists but might be corrupted
+      if (fs.existsSync(Config.TRACKING_REPO_PATH)) {
+        const backupDir = `${Config.TRACKING_REPO_PATH}_backup_${Date.now()}`;
+        outputChannel.appendLine(`Attempting to backup and recreate local repository...`);
+        
+        try {
+          // Rename the existing directory to a backup
+          fs.renameSync(Config.TRACKING_REPO_PATH, backupDir);
+          outputChannel.appendLine(`Backed up existing repository to ${backupDir}`);
+          
+          // Try again with a fresh directory
+          await ensureLocalRepo(
+            Config.TRACKING_REPO_PATH,
+            remoteUrl,
+            token,
+          );
+          outputChannel.appendLine("Local repository recreated successfully");
+        } catch (backupError) {
+          outputChannel.appendLine(`Failed to backup and recreate repository: ${backupError}`);
+          vscode.window.showErrorMessage("Failed to set up local repository. Please restart VS Code and try again.");
+          return;
+        }
+      } else {
+        vscode.window.showErrorMessage("Failed to set up local repository. Please restart VS Code and try again.");
+        return;
+      }
+    }
 
     outputChannel.appendLine("Creating daily directory...");
-    await ensureDailyDirectory(Config.TRACKING_REPO_PATH);
-    outputChannel.appendLine("Daily directory is ready");
+    try {
+      await ensureDailyDirectory(Config.TRACKING_REPO_PATH);
+      outputChannel.appendLine("Daily directory is ready");
+    } catch (error) {
+      outputChannel.appendLine(`Failed to create daily directory: ${error}`);
+      // This is not critical, we can continue
+    }
 
     outputChannel.appendLine("Starting file change tracking...");
     const changeDisposable = vscode.workspace.onDidChangeTextDocument(
@@ -274,18 +376,23 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
       `Setting up auto-commit timer (interval: ${Config.getCommitIntervalMs()}ms)...`,
     );
     const timer = setInterval(async () => {
-      const { token } = await Config.getToken();
-      if (token && REMOTE_REPO_HTTPS_URL) {
-        outputChannel.appendLine("Creating activity log...");
-        await createActivityLog(Config.TRACKING_REPO_PATH);
-        const summary = await createSummary();
-        outputChannel.appendLine("Committing and pushing changes...");
-        await commitAndPush(
-          Config.TRACKING_REPO_PATH,
-          summary,
-          token,
-          REMOTE_REPO_HTTPS_URL
-        );
+      try {
+        const { token } = await Config.getToken();
+        if (token && REMOTE_REPO_HTTPS_URL) {
+          outputChannel.appendLine("Creating activity log...");
+          await createActivityLog(Config.TRACKING_REPO_PATH);
+          const summary = await createSummary();
+          outputChannel.appendLine("Committing and pushing changes...");
+          await commitAndPush(
+            Config.TRACKING_REPO_PATH,
+            summary,
+            token,
+            REMOTE_REPO_HTTPS_URL
+          );
+        }
+      } catch (error) {
+        outputChannel.appendLine(`Auto-commit error: ${error}`);
+        // Don't show error message for auto-commits to avoid spamming the user
       }
     }, Config.getCommitIntervalMs());
 
@@ -296,7 +403,12 @@ async function setupCodeTracking(context: vscode.ExtensionContext) {
       },
     });
 
+    // Reset setup attempts on successful setup
+    await context.globalState.update(setupAttemptKey, 0);
     outputChannel.appendLine("Code tracking setup complete");
+    
+    // Show success message to the user
+    vscode.window.showInformationMessage("Code tracking setup complete. Your coding activity is now being tracked.");
   } catch (error) {
     outputChannel.appendLine(`Error during setup: ${error}`);
     vscode.window.showErrorMessage(`Failed to set up code tracking: ${error}`);
