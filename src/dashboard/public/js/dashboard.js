@@ -151,6 +151,7 @@ function createDailyChart(data) {
     // Process commits to get daily project totals
     const dailyProjectTotals = {};
     const projectColors = {};
+    const colors = generateColors(8); // Get the same colors used in pie charts
     let colorIndex = 0;
     
     // Initialize all days in the range with empty project totals
@@ -163,6 +164,24 @@ function createDailyChart(data) {
         dailyProjectTotals[date.toLocaleDateString()] = {};
     }
     
+    // Get project totals first to assign colors to most active projects
+    const projectTotals = {};
+    data.commits.forEach(commit => {
+        const project = commit.projectName || 'Unknown';
+        if (!projectTotals[project]) {
+            projectTotals[project] = 0;
+        }
+        projectTotals[project] += (commit.duration || 0);
+    });
+
+    // Sort projects by total time and assign colors
+    Object.entries(projectTotals)
+        .sort(([,a], [,b]) => b - a)
+        .forEach(([project]) => {
+            projectColors[project] = colors[colorIndex % colors.length];
+            colorIndex++;
+        });
+    
     // Fill in actual data
     data.commits.forEach(commit => {
         const date = new Date(commit.timestamp).toLocaleDateString();
@@ -172,12 +191,6 @@ function createDailyChart(data) {
                 dailyProjectTotals[date][project] = 0;
             }
             dailyProjectTotals[date][project] += (commit.duration || 0);
-            
-            // Assign consistent colors to projects
-            if (!projectColors[project]) {
-                projectColors[project] = generateColors(1)[colorIndex % 8];
-                colorIndex++;
-            }
         }
     });
 
@@ -455,7 +468,7 @@ function updateLanguagesList(data) {
 }
 
 function formatTime(minutes) {
-    if (!minutes) return '0min';
+    if (!minutes) return '0h 0min';
     
     // Round to nearest minute
     minutes = Math.round(minutes);
@@ -463,21 +476,16 @@ function formatTime(minutes) {
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     
-    if (hours === 0) {
-        return `${mins}min`;
-    }
-    
-    if (mins === 0) {
-        return `${hours}h`;
-    }
-    
     return `${hours}h ${mins}min`;
 }
 
 function generateColors(count) {
     const colors = [
         '#2196f3', '#4caf50', '#f44336', '#ff9800', 
-        '#9c27b0', '#3f51b5', '#e91e63', '#009688'
+        '#9c27b0', '#3f51b5', '#e91e63', '#009688',
+        '#ffd700', '#8bc34a', '#795548', '#607d8b',
+        '#9575cd', '#f06292', '#4dd0e1', '#ff7043',
+        '#d4e157', '#fb8c00', '#7e57c2', '#66bb6a'
     ];
     return colors.slice(0, count);
 } 

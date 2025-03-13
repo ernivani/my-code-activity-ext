@@ -52,7 +52,7 @@ export class DashboardServer {
 
     constructor() {
         this.app = express();
-        this.port = 3000;
+        this.port = 5556;
         this.server = null;
         this.setupMiddleware();
         this.setupRoutes();
