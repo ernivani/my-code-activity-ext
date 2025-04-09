@@ -4,6 +4,14 @@ import * as path from 'path';
 import { Config } from '../utils/config';
 import { getTotalActiveTime } from './activity';
 
+// Constants for consistent date formatting
+const DATE_LOCALE = 'en-CA'; // Keep en-CA as it's used for folder names
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = { 
+  year: 'numeric', 
+  month: 'numeric', 
+  day: 'numeric' 
+};
+
 export class StatusBarManager {
     private statusBarItem: vscode.StatusBarItem;
     private activationTime: Date;
@@ -12,7 +20,7 @@ export class StatusBarManager {
 
     constructor() {
         this.activationTime = new Date();
-        this.currentDate = new Date().toLocaleDateString('en-CA');
+        this.currentDate = new Date().toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.statusBarItem.text = "";
         this.statusBarItem.command = 'codeTracker.openDashboard';
@@ -69,7 +77,7 @@ export class StatusBarManager {
 
     public async update() {
         const now = new Date();
-        const newDate = now.toLocaleDateString('en-CA');
+        const newDate = now.toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
 
         // Check if day has changed
         if (this.currentDate !== newDate) {

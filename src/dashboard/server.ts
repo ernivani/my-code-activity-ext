@@ -3,6 +3,10 @@ import * as path from 'path';
 import { Server } from 'http';
 import { readStatsInRange } from '../tracking/activity';
 
+// Constants for consistent date formatting
+const DATE_LOCALE = 'en-US';
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = { weekday: 'short' };
+
 interface TimeStats {
     totalActiveTime: number;
     totalProjects: number;
@@ -132,7 +136,8 @@ export class DashboardServer {
 
                 // Process current period stats
                 for (const dailyStats of currentStats) {
-                    const date = new Date(dailyStats.date).toLocaleDateString('en-US', { weekday: 'short' });
+                    // Use the consistent date locale format
+                    const date = new Date(dailyStats.date).toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
                     dailyActivity[date] = (dailyActivity[date] || 0) + dailyStats.totalActiveTime;
                     totalActiveTime += dailyStats.totalActiveTime;
 
