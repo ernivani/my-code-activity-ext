@@ -5,6 +5,14 @@ import { promisify } from "util";
 import { exec } from "child_process";
 import { Config } from "../utils/config";
 
+// Constants for consistent date formatting
+const DATE_LOCALE = 'en-CA'; // Keep en-CA as it's used for folder names
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = { 
+  year: 'numeric', 
+  month: 'numeric', 
+  day: 'numeric' 
+};
+
 const execAsync = promisify(exec);
 
 const fileContentsCache: { [filePath: string]: string[] } = {};
@@ -57,7 +65,7 @@ let activeTimeInMinutes = 0;
 
 async function readExistingStats(date?: string): Promise<DailyStats | null> {
   try {
-    const targetDate = date || new Date().toLocaleDateString('en-CA');
+    const targetDate = date || new Date().toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
     const activityJsonPath = path.join(
       Config.TRACKING_REPO_PATH,
       targetDate,
@@ -101,7 +109,7 @@ export async function readStatsInRange(startDate: Date, endDate: Date): Promise<
   
   const current = new Date(start);
   while (current <= end) {
-    const date = current.toLocaleDateString('en-CA');
+    const date = current.toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
     console.log(`Checking stats for date: ${date}`); // Debug log
     const dailyStats = await readExistingStats(date);
     if (dailyStats) {
@@ -297,7 +305,7 @@ function updateActiveTime(now: Date) {
 export async function ensureDailyDirectory(
   trackingRepoPath: string,
 ): Promise<string> {
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = new Date().toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
   const dayFolderPath = path.join(trackingRepoPath, today);
 
   try {
@@ -373,7 +381,7 @@ export async function createActivityLog(
 }
 
 async function aggregateStats(): Promise<DailyStats> {
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = new Date().toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
   const stats: DailyStats = {
     date: today,
     projects: {},
@@ -690,7 +698,7 @@ export async function createHourlyLogs(
     }
   }
 
-  const today = new Date().toLocaleDateString('en-CA');
+  const today = new Date().toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
 
   for (const [hour, changes] of Object.entries(changesByHour)) {
     const hourMdPath = path.join(projectPath, `${today}-${hour}.md`);

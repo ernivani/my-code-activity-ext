@@ -54,6 +54,10 @@ const defaultChartOptions = {
     }
 };
 
+// Use consistent locale for all date formatting
+const DATE_LOCALE = 'en-US';
+const DATE_FORMAT_OPTIONS = { year: 'numeric', month: 'numeric', day: 'numeric' };
+
 let currentData = null;
 let currentRange = 'day';
 let charts = {}; // Store chart instances
@@ -160,12 +164,16 @@ function createDailyChart(data) {
     for (let i = 0; i < daysToShow; i++) {
         const date = new Date(today);
         date.setDate(date.getDate() - i);
-        dailyProjectTotals[date.toLocaleDateString()] = {};
+        // Use consistent date formatting with the specified locale
+        dailyProjectTotals[date.toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS)] = {};
     }
     
     // Fill in actual data
     data.commits.forEach(commit => {
-        const date = new Date(commit.timestamp).toLocaleDateString();
+        // Parse the date consistently using the timestamp
+        const commitDate = new Date(commit.timestamp);
+        const date = commitDate.toLocaleDateString(DATE_LOCALE, DATE_FORMAT_OPTIONS);
+        
         if (dailyProjectTotals[date] !== undefined) {
             const project = commit.projectName || 'Unknown';
             if (!dailyProjectTotals[date][project]) {
@@ -181,7 +189,10 @@ function createDailyChart(data) {
         }
     });
 
-    const sortedDates = Object.keys(dailyProjectTotals).sort((a, b) => new Date(a) - new Date(b));
+    // Sort dates chronologically - always use DATE_LOCALE for consistent parsing
+    const sortedDates = Object.keys(dailyProjectTotals).sort((a, b) => {
+        return new Date(a) - new Date(b);
+    });
     
     // Create datasets for each project
     const allProjects = [...new Set(Object.values(dailyProjectTotals)
@@ -216,7 +227,7 @@ function createDailyChart(data) {
     return new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sortedDates.map(date => new Date(date).toLocaleDateString('en-US', { weekday: 'short' })),
+            labels: sortedDates.map(date => new Date(date).toLocaleDateString(DATE_LOCALE, { weekday: 'short' })),
             datasets: datasets
         },
         options: {
